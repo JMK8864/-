@@ -186,3 +186,50 @@
 2. **단기(안정성)**: B1(타이머 async void) · B2(Flush 유실) · B3(Default 객체 오염) · B6(집계 루프 정지) 수정 — 모두 수 줄 수준의 수정으로 해결 가능
 3. **중기(빌드)**: nuget.config + 로컬 피드 또는 ProjectReference로 통일, 패키지 버전 고정(CPM), `global.json` 활성화, 누락 프로젝트를 sln에서 제거, EF Migrations 도입
 4. **장기(구조)**: 죽은 코드 정리, 대형 파일 분리, 빈 catch 제거·로깅 일원화, 핵심 파이프라인(ProtocolParser, 누적 집계, Heartbeat 응답) 단위 테스트 추가
+
+---
+
+## 7. 설치 필요 S/W 및 패키지
+
+### 7.1 개발 PC (Windows 필수 — WPF 프로젝트 포함)
+
+| S/W | 비고 |
+|---|---|
+| Visual Studio 2022 17.8+ | 워크로드: "ASP.NET 및 웹 개발", ".NET 데스크톱 개발" |
+| .NET 8 SDK (8.0.414) | `global.jso_` 기준 버전 |
+| **wasm-tools 워크로드** | `dotnet workload install wasm-tools` — DxfBlazorViewer가 `WasmBuildNative=true`(SkiaSharp WASM). 없으면 빌드 실패 |
+| Windows 10 SDK 10.0.19041 | CJ.FTMS.Viewer TFM `net8.0-windows10.0.19041` |
+| dotnet-ef | `dotnet tool restore` (`.config/dotnet-tools.json`) |
+| 로컬 NuGet 피드 | DxfBlazorViewer가 참조하는 `Assembly.ChatHub.Shared / JwtTokenGenerator / LoginManager 1.0.0.1` 패키지 필요 (zip에 없음) |
+| PostgreSQL 클라이언트 | pgAdmin 또는 psql — `Database/*.sql` 실행용 |
+
+### 7.2 서버
+
+| S/W | 비고 |
+|---|---|
+| ASP.NET Core Runtime 8.0 | app-server / web-server / reverse-proxy (IIS 사용 시 Hosting Bundle) |
+| PostgreSQL 17 또는 18 | 스크립트 기준: Windows PG17 확인, Linux PG18 설치 스크립트 |
+| TimescaleDB 확장 | `CREATE EXTENSION timescaledb` (+ `timescaledb-tune`, `shared_preload_libraries`) |
+| pgcrypto 확장 | `CollectedPayloadRepository`가 생성 (PostgreSQL contrib 기본 포함) |
+| (선택) Docker | 운영 문서상 `ftms-timescaledb` 컨테이너 사용 |
+| (선택) 인증서 | HTTPS 사용 시 PFX → LocalMachine\My (`certs/*.ps1`) |
+| (선택) Promtail/Loki/Grafana | 로그 수집 (코드 주석에만 언급) |
+| 방화벽 | TCP 6004~6006, 8121, 8122, 프록시 포트 |
+
+DB 준비: `tapsuser` 계정, `authdb`, `ftmsdb` 생성 (`Database/1-1 ... ftmsuser 계정 생성.sql`). 테이블은 앱 기동 시 자동 생성.
+
+### 7.3 클라이언트
+
+| 대상 | 필요 S/W |
+|---|---|
+| 웹 UI | Chrome/Edge 최신 (WebAssembly). wasm-scada는 CDN(chart.js, d3, font-awesome) 사용 → 폐쇄망이면 로컬화 필요. DxfBlazorViewer는 echarts 로컬 포함 |
+| WPF Viewer / 에뮬레이터 | Windows 10 2004+ , .NET 8 Desktop Runtime (`SelfContained=false`) |
+
+### 7.4 주요 NuGet 패키지 (자동 복원)
+
+- 웹/인증: Microsoft.AspNetCore.Identity.EntityFrameworkCore, Authentication.JwtBearer, SignalR(.Client), Components.WebAssembly, Hosting.WindowsServices, Swashbuckle.AspNetCore, Yarp.ReverseProxy
+- DB: Npgsql, Npgsql.EntityFrameworkCore.PostgreSQL, EFCore.NamingConventions, Microsoft.EntityFrameworkCore.Sqlite/Tools, Microsoft.Data.Sqlite.Core
+- 로깅: Serilog.Extensions.Hosting, Settings.Configuration, Sinks.Async/Console/File
+- 도면/그래픽: SkiaSharp(+Views.Blazor, Views.WPF, NativeAssets.WebAssembly), IxMilia.Dxf, netDxf, MessagePack
+- 기타: System.IdentityModel.Tokens.Jwt, Newtonsoft.Json, System.IO.Pipelines, System.IO.Hashing, System.Management
+- 로컬 패키지: `.packages/YiApp.Controls.Wpf`, `YiApp.Shapes` 1.0.0.5
