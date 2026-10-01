@@ -233,3 +233,106 @@ DB 준비: `tapsuser` 계정, `authdb`, `ftmsdb` 생성 (`Database/1-1 ... ftmsu
 - 도면/그래픽: SkiaSharp(+Views.Blazor, Views.WPF, NativeAssets.WebAssembly), IxMilia.Dxf, netDxf, MessagePack
 - 기타: System.IdentityModel.Tokens.Jwt, Newtonsoft.Json, System.IO.Pipelines, System.IO.Hashing, System.Management
 - 로컬 패키지: `.packages/YiApp.Controls.Wpf`, `YiApp.Shapes` 1.0.0.5
+
+---
+
+## 8. 중요 클래스 설명
+
+> 경로는 `servers/ftms/` 기준(별도 표기 제외). ★ = 수정/디버깅 시 가장 먼저 봐야 할 클래스
+
+### 8.1 통신 계층 (TCP — 도크 ↔ 서버)
+
+| 클래스 | 위치 | 역할 |
+|---|---|---|
+| ★ `TcpServerFinalService` | app-server/TcpServer | BackgroundService. `TcpServerFinal:Ports`(6004~6006)마다 `TcpListener` 기동 → 클라이언트별 세션 Task. 수신 Pipe → 메시지 → 핸들러 우선순위 순으로 `CanHandle` 검사 → 응답 전송. 5초 주기로 무수신 타임아웃(기본 10초) 클라이언트 강제 종료 |
+| `TcpServerServiceBase<TConfig>` | 〃 | 공통부: `FillPipeAsync`(소켓→PipeWriter), `ReadPipeAsync`(PipeReader→`ProtocolParser`) |
+| `ProtocolParser` | app-shared/Protocols | 프레이밍. `StartDelimiter` 있으면 **Frame 모드**(STX…ETX, STX 앞 쓰레기 무시), 없으면 **Line 모드**(종단자까지) |
+| `TcpServerConnectionManager` | app-server/TcpConnectionManager | 접속 클라이언트 레지스트리(`clientId=IP:Port`), 닉네임(=DockId) 매핑, 클라이언트별 로그레벨, `SendToClientAsync`(구분자를 붙여 전송) |
+| `ITcpMessageHandler` | app-server/TcpMessageHandlers | 핸들러 계약: `Priority`, `CanHandle(msg, out cmd)`, `HandleAsync(...)` → 응답 문자열. 구현체는 리플렉션으로 자동 DI 등록 |
+| ├ `PingCommandHandler` (0) | 〃 | `ping` → `pong` |
+| ├ `ApiDockStatusCommandHandler` (5) | 〃 | `/api/dock/status` 문자열 명령 (await 누락 버그 B4) |
+| └ ★ `JsonMessagedHandler` (100) | 〃 | JSON의 `type` 필드로 분기: `process_count` → `DataCollectorChannel`에 넣고 OK 응답 / `heartbeat` → StateManager·DeviceStatusManager 처리 후 파라미터 포함 응답 / `dock_sorting_param` / `request_time` |
+
+**메시지 모델** (app-shared/Models/Messages)
+- `TcpMessageRequestBase` / `ResponseBase`: `MessageId`, `Type`, `Timestamp`, `ClientId`(=DockId)
+- `HeartBeatReportMessage`: `DeviceStatuses[] { Id, Status(hex 문자열), LastSeenAt }`, `Version`
+- `HeartBeatResponse`: `SetParameter`(= `DockSortingActiveParameter`) — **서버→도크 설정 전달 수단**
+- `ProcessCountMessage`: `ProcessCounts[]`(보통 [이번 건, 누적]), `RawData`
+- `DockSortingParameterSet`(크기/포화도 기준값 세트) / `DockSortingActiveParameter`(도크별 활성 세트 이름)
+
+### 8.2 상태 관리 계층
+
+| 클래스 | 역할 |
+|---|---|
+| ★ `LogisticsSystemStateManager` (app-server/Managers) | 시스템 상태의 중심. 싱글턴 + HostedService. **기동 시** `event_data_store`·`settings` 테이블에서 Heartbeat/파라미터/누적카운트 복원. **실행 중** `AssetItemUpdateChannel`을 읽어 설정 변경을 메모리에 반영. 제공 기능: Heartbeat 응답 생성(`GetResponseHeartbeatMessageAsync` — 장치상태 정규화 + 도크 파라미터 선택, 없으면 `"Default"`), 처리수량 5분 슬라이딩 누적(`AccumProcessCountFromClientAsync`, `RemoveTimeoutProcessCountsAsync`), 조회(`GetProcessCountsAsync`, `GetAllStatusAsync`), 수집 처리결과 누계 |
+| ★ `EventDataStoreService<TKey>` (app-server/Services) | "타입명 → (키 → 최신 객체)" 2단 **인메모리 키-값 저장소** + 선택적 DB 영속화(`saveToDb=true`면 10초마다 `event_data_store`(JSONB)에 INSERT, 60초마다 키별 최신 1건만 남기고 삭제). 재시작 시 `RestoreAsync<T>`로 복원. 현재 상태(Heartbeat, 파라미터, 누적)는 모두 여기 있음 (B1·B2·B10 주의) |
+| `DeviceStatusManager` (+ `DeviceTypeStore`) | Heartbeat의 장치 상태(hex 코드 배열)를 장치유형(`DeviceTypeEnum`: Conveyor/Scanner/Sensor/Dimensioner/Weigher…)·인덱스별로 이전 값과 비교 → 바뀐 비트를 `DeviceStatusFlagDiff`로 이벤트화 → `ftms_event_list` 마스터와 매칭해 **`ftms_event_log`(알람 이력)에 저장**. 이전 상태는 메모리에만 있어 **서버 재시작 직후 모든 상태가 "신규"로 다시 기록**됨 |
+| `DeviceStatusManagerInitializer` | 기동 시 이벤트 마스터(`FtmsEventList`) 캐시 로드 |
+
+### 8.3 수집·집계 계층
+
+| 클래스 | 역할 |
+|---|---|
+| ★ `DataCollectorService` (app-server/Services) | `DataCollectorChannel` 소비자. ProcessCount 메시지를 보정(DockId←ClientId/RawData, 빈 값 `-`)한 뒤 ① 누적용 큐 → 1초마다 StateManager 누적 ② 10개 회전 큐 → 1초/2만건마다 CSV 텍스트로 `collected_payload` INSERT. 별도 루프 2개: `process_collected_payload_v4()` 반복 호출(원본→`process_counts`/`rawdata_table` 반영, 결과를 SignalR 푸시), `process_counts_aggregate_all()` 1초 주기 호출(분/시/일 집계) |
+| `CollectedPayloadRepository` (Assembies/Data.Collector) | `collected_payload` 큐 테이블 + PL/pgSQL 함수 생성 SQL 내장(`InitializeAsync`), 처리/재시도(최대 5회)/Dead-letter, 결과를 `PayloadProcessingResult`로 반환 |
+| `ProcessCountRepository` | 집계 함수 호출, COPY 기반 Bulk Upsert(현재 경로에서는 집계 호출만 사용). ⚠ `process_counts_aggregate_all` 함수는 **앱이 만들지 않음** — `Database/0-0 …sql`로 사전 생성 필요 (없으면 B6로 집계 루프 정지) |
+| `ProcessCountT<T>` / `ProcessCountL`(long) / `ProcessCount`(int) (app-shared) | 처리수량 모델. 키: `DockId, VehicleNumber, Route, Pid, Mode, CreatedAt` / 카운터 그룹: `Scanner, Dimensioner, Judge, Sorting, Small, Medium, Large, Irregular` / 원본: `Rawdata, Dwsdata, Metadata`. `+`,`-` 연산자 오버로드로 누적 계산 |
+| `DataCollectorChannel`, `AssetItemUpdateChannel` | 서비스 간 비동기 메시지 통로(Unbounded `Channel<T>`, 단일 소비자) |
+
+### 8.4 웹 API / 실시간 계층
+
+| 클래스 | 역할 |
+|---|---|
+| `AuthController` | 로그인(Access JWT 15분 응답 + Refresh 토큰 7일 HttpOnly 쿠키 `ftms-api-refresh-token`, IP 바인딩), refresh(만료 24h 이내면 회전), logout, 비밀번호 변경, register(⚠ S1) |
+| `UsersController` | 사용자/역할 조회·부여 (`Admin` 전용) |
+| ★ `AssetsController<T>` → `SettingsController`(`/api/setting`) | 설정 저장소 API. `AssetItem`(Type/Category/MachineId/GroupId/Key + Json/Text/Blob 값, Version, RowVersion) CRUD. **저장(POST) 시 `AssetItemUpdateChannel`로 통지 → StateManager가 메모리 갱신 → 다음 Heartbeat로 도크에 반영**. ⚠ DELETE는 통지하지 않아 메모리에 이전 값이 남음 |
+| `ProcessCountController` | 실시간(`live/latest-n-minutes` = 메모리 누적값), 기간/도크/PID 조회, 통계(`statics`), 일별 누적 |
+| `EventLogController` | 알람 이력 검색(`search/fast`), 확인(acknowledge, 단건/일괄), 통계, 시계열 |
+| `RawDataController`, `ScanDataController` | 원본 스캔 데이터 검색(offset/cursor 페이징), 다운로드, 삭제 |
+| `RuntimeConfigChangeController` | 앱/클라이언트별 로그 레벨 런타임 변경 |
+| `IApiCommand` / `ApiCommandFinder` / `EndpointMapper` | Minimal API 플러그인: 구현 클래스가 `/api/{Name}`으로 자동 매핑. ⚠ `Activator.CreateInstance`로 생성 → DI 사용 불가(매개변수 없는 생성자 필요) |
+| `DrawingCommand` (`/api/dxf`) | `FTMS.v1.dxf`를 `DxfParser`로 파싱해 캐시, Accept에 따라 JSON 또는 MessagePack+LZ4로 전송 |
+| `ChatHub` (Assembies/SR.Shared) | SignalR 허브 `/chathub`. 서버→클라 이벤트: `Heartbeat`, `ServerStatusReceived`, `CollectedCountReceived` 등. `ChatHubConnectionManager`가 세션/닉네임 관리 |
+| `WebSocketHeartbeatService` | 0.5초마다 SignalR Heartbeat, 1분마다 `ServerStatus` 푸시. ⚠ **CPU 45.5 / 메모리 68.3 / 큐길이 12 / DB연결 true는 하드코딩된 더미 값** (TCP 연결 수만 실제) |
+| `ExternalServersHealthCheck` + `HealthCheckResponseWriter` | `/health` JSON 응답 |
+| `AccountDbContext` / `DataDbContext` | EF Core (Npgsql, snake_case). Data: `Settings`, `RawData`, `ScanData`, `FtmsEventList/Log`, `DockMessageEvents`(=event_data_store), `DockProcessStatistics` 등 |
+| `Account` (app-shared/Authorization) | Role 7종, Permission 비트플래그, Role→Permission 맵, 정책명 상수, 역할 위임 규칙 |
+
+### 8.5 웹 클라이언트 (DxfBlazorViewer.Client)
+
+| 클래스 | 역할 |
+|---|---|
+| ★ `Viewer.razor(.cs)` (3.6천 줄) | 메인 화면. DXF 도면 위에 도크별 상태·처리량을 색상으로 오버레이. `PeriodicTimer`로 `/api/Dock/status`, `/api/ProcessCount/live/latest-n-minutes`, `/api/EventLog/search/fast`를 **폴링**, 레인/도크 라벨은 `/api/setting`에 저장 |
+| ★ `DxfSkiaRendererFast` (3.1천 줄) | SkiaSharp 렌더러. `LoadFromScene` → 블록/Insert 캐시 → `Render(canvas, zoom, pan)`. 도크 영역 탐지(`GetDockIndices`, `TryGetDockWorldRect`), 레인-도크 연결 자동 추론, 판정(Judge) 비율에 따른 색상 정책(`FillPolicy`), 히트테스트, 라벨 import/export. `_v2/_v3`, `DxfSkiaRenderer`는 이전 버전(빌드 제외) |
+| `DxfServerAdapter` | `/api/dxf` 다운로드(MessagePack 우선, ETag 캐시) → `DxfSceneDto`(Paths/Texts/Blocks/Inserts/Bounds) |
+| `Stats`, `Alarm`, `RawData`, `Settings`, `Ppc`(대시보드), `Monitoring`, `AdminHealth`, `UserRoleManagement` 페이지 | 각 메뉴 화면 (code-behind `.razor.cs`) |
+| `ChatClientBackgroundService` | SignalR 연결 유지·재연결, 서버 이벤트를 C# 이벤트로 중계 |
+| `LoginManager` + `RealAuthService` (Assembies/LoginManager) | 로그인 상태 머신, Access 토큰 메모리 보관, 만료 전 자동 refresh(3회 실패 시 로그아웃), 상태 변경 이벤트 |
+| `IncludeCredentialsHandler` | 모든 HttpClient 요청에 브라우저 쿠키 포함(refresh 토큰 전송용) |
+
+### 8.6 에뮬레이터 / 기타
+
+| 클래스 | 역할 |
+|---|---|
+| `TcpClientConnectionManager` / `TcpClientFinalService` (tcpclient.emul) | 서버 다중 연결, 자동 재연결(지수 백오프), 수신 타임아웃 감지, 통계 |
+| `MainWindow` (tcpclient.emul) | `HeartbeatLoop`(2초), `ProcessCountLoop`(초당 N건 랜덤 데이터) — **서버 부하·기능 시험용 데이터 생성기** |
+| `DxfParser` (Assembies/Dxf.Parser) | IxMilia.Dxf → `DxfSceneDto` 변환(서버의 `/api/dxf`가 사용) |
+| `JwtTokenGenerator` | Access(sub, jti, name, nickname, `ftms-api-token-id`, roles) / Refresh 토큰 생성, HS256 |
+| `AsyncTcpServer`, `AutoReconnectTcpClient` (Assembies/Iocp) | IOCP 소켓 라이브러리. emul csproj가 참조하지만 **현재 코드에서 사용하지 않음** |
+
+### 8.7 클래스 협력 관계 요약
+
+```
+[TCP] TcpServerFinalService ─► JsonMessagedHandler
+          │ process_count                      │ heartbeat
+          ▼                                    ▼
+   DataCollectorChannel              LogisticsSystemStateManager ◄── AssetItemUpdateChannel ◄── SettingsController(POST)
+          ▼                                    │        │                                        (웹 설정 변경)
+   DataCollectorService ──누적──────────────────┘        ├─► EventDataStoreService (메모리 ⇄ event_data_store)
+     ├ collected_payload INSERT                         └─► DeviceStatusManager ─► ftms_event_log (알람)
+     ├ process_collected_payload_v4()  ─► process_counts / rawdata_table
+     ├ process_counts_aggregate_all()  ─► 분/시/일 집계 테이블
+     └ SignalR CollectedCountReceived
+[Web]  Viewer(폴링) ─► ProcessCountController / DockController / EventLogController ─► StateManager·DB
+       ChatClientBackgroundService ◄── ChatHub ◄── WebSocketHeartbeatService / DataCollectorService
+```
