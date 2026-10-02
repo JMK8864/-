@@ -199,7 +199,7 @@
 | .NET 8 SDK (8.0.414) | `global.jso_` 기준 버전 |
 | **wasm-tools 워크로드** | `dotnet workload install wasm-tools` — DxfBlazorViewer가 `WasmBuildNative=true`(SkiaSharp WASM). 없으면 빌드 실패 |
 | Windows 10 SDK 10.0.19041 | CJ.FTMS.Viewer TFM `net8.0-windows10.0.19041` |
-| dotnet-ef | `dotnet tool restore` (`.config/dotnet-tools.json`) |
+| (선택) dotnet-ef 9.0.9 | EF Core 마이그레이션 CLI. **빌드·실행에는 불필요**(app-server는 `EnsureCreated` 사용, Migrations 폴더 없음). 각 프로젝트 폴더의 `.config/dotnet-tools.json`에 정의 → 해당 폴더에서 `dotnet tool restore` |
 | 로컬 NuGet 피드 | DxfBlazorViewer가 참조하는 `Assembly.ChatHub.Shared / JwtTokenGenerator / LoginManager 1.0.0.1` 패키지 필요 (zip에 없음) |
 | PostgreSQL 클라이언트 | pgAdmin 또는 psql — `Database/*.sql` 실행용 |
 
