@@ -336,3 +336,38 @@ DB 준비: `tapsuser` 계정, `authdb`, `ftmsdb` 생성 (`Database/1-1 ... ftmsu
 [Web]  Viewer(폴링) ─► ProcessCountController / DockController / EventLogController ─► StateManager·DB
        ChatClientBackgroundService ◄── ChatHub ◄── WebSocketHeartbeatService / DataCollectorService
 ```
+
+---
+
+## 9. 필수 설치 S/W 및 설정 절차 (Windows 단일 서버 기준)
+
+### 9.1 반드시 설치
+
+| 구분 | S/W | 용도 |
+|---|---|---|
+| 개발 PC | Visual Studio 2022 17.8+ (ASP.NET/웹 + .NET 데스크톱 워크로드) | 빌드 |
+| 개발 PC | .NET 8 SDK | 빌드 |
+| 개발 PC | `wasm-tools` 워크로드 | DxfBlazorViewer(SkiaSharp WASM 네이티브 빌드) |
+| 서버 | ASP.NET Core Runtime 8.0 (Hosting Bundle 권장) | app-server / web-server / reverse-proxy 실행 |
+| 서버 | PostgreSQL 17 (또는 18) | DB |
+| 서버 | TimescaleDB 확장 (PG 버전에 맞는 것) | 하이퍼테이블·집계 스크립트 |
+| 클라이언트 | Chrome / Edge | 웹 UI |
+
+### 9.2 설정 순서
+
+1. **개발 PC 준비**: VS 설치 → `dotnet workload install wasm-tools`
+2. **로컬 NuGet 피드**(DxfBlazorViewer 빌드용): `Assembly.ChatHub.Shared`, `Assembly.JwtTokenGenerator`, `Assembly.LoginManager`는 `GeneratePackageOnBuild=true`, Version 1.0.0.1 → Release 빌드 후 `bin\Release\*.nupkg`를 한 폴더(예: `C:\LocalNuget`)에 복사, `.packages` 폴더와 함께 `dotnet nuget add source`로 등록
+3. **DB**: PostgreSQL + TimescaleDB 설치 → `postgresql.conf`에 `shared_preload_libraries = 'timescaledb'` → 재시작 → `tapsuser` / `authdb` / `ftmsdb` 생성 → `ftmsdb`에서 `CREATE EXTENSION timescaledb; CREATE EXTENSION pgcrypto;`
+4. **app-server 설정** (`appsettings.json`): `ConnectionStrings`, `Jwt:SecretKey`(새 값), `TcpServerFinal:Ports`
+5. **배포 폴더**(기준 폴더 = exe 폴더의 상위): `C:\FTMS\app-server`, `C:\FTMS\web-server`, `C:\FTMS\reverse-proxy`, `C:\FTMS\default.settings`(← `.default.settings/*` 복사), `C:\FTMS\assets\FTMS.v1.dxf`(← `.dxf/FTMS.v1.dxf`, 또는 환경변수 `FTMS_DXF_PATH`), 로그는 `C:\FTMS\logs`
+6. **최초 기동 → DB 스키마**: app-server를 **빈 ftmsdb에 먼저 1회 실행**(EF `EnsureCreated`는 DB에 테이블이 하나라도 있으면 아무것도 만들지 않음) → 종료 → `Database/0-0 …sql`에서 하이퍼테이블·집계 테이블·`process_counts_aggregate_all` 함수 부분만 실행. ⚠ 이 스크립트에는 주석 처리 안 된 `delete from process_counts; delete from ftms_event_log; delete from dock_message_events;`가 있음 — 통째로 실행 금지
+7. **WASM 배포**: `dotnet publish DxfBlazorViewer.Client.csproj -c Release -o out` → `out\wwwroot\*`를 `C:\FTMS\web-server\wwwroot`에 복사
+8. **서비스 등록**: app-server는 Release 빌드 시 `UseWindowsService` 내장 → `sc.exe create`. web-server·reverse-proxy는 `UseWindowsService`가 없음 → NSSM 사용 또는 코드에 한 줄 추가. reverse-proxy는 포트 설정이 없어 `--urls http://0.0.0.0:80` 지정 필요
+9. **방화벽**: 6004–6006(도크 TCP), 80(프록시). 8121·8122는 프록시를 거치면 외부 개방 불필요
+10. **확인**: `http://서버/health`, 웹 로그인, 에뮬레이터(tcpclient.emul)로 6004 접속 → Heartbeat/처리수량 표시
+
+### 9.3 설치 중 발견한 추가 문제
+
+- **B15** `EventDataStoreService`: 저장은 `dock_message_events`(EF 매핑)로 하고, 복원(`RestoreAsync`)·정리(`DeleteOldEventsAsync`)는 `event_data_store` 테이블을 읽음 → **재시작 시 Heartbeat/누적 상태가 복원되지 않고**, `dock_message_events`는 TimescaleDB 보존정책(90일)이 없으면 계속 증가
+- app-server의 기준 폴더가 Linux에서는 `/`(루트) → `/logs`, `/default.settings`, `/assets`, `/data` 쓰기 권한 필요 (Docker 또는 Windows 권장)
+- PostBuild의 `xcopy`는 Windows 전용 → Linux 빌드 실패 가능
