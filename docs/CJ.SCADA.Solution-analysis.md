@@ -197,7 +197,7 @@
 |---|---|
 | Visual Studio 2022 17.8+ | 워크로드: "ASP.NET 및 웹 개발", ".NET 데스크톱 개발" |
 | .NET 8 SDK (8.0.414) | `global.jso_` 기준 버전 |
-| **wasm-tools 워크로드** | `dotnet workload install wasm-tools` — DxfBlazorViewer가 `WasmBuildNative=true`(SkiaSharp WASM). 없으면 빌드 실패 |
+| **wasm-tools 워크로드** | SDK 8 사용 시 `dotnet workload install wasm-tools`, **SDK 9/10 사용 시 `dotnet workload install wasm-tools-net8`** (관리자 권한). DxfBlazorViewer(`WasmBuildNative=true`)·wasm-scada(SkiaSharp WASM)가 필요로 함. 없으면 빌드 실패 |
 | Windows 10 SDK 10.0.19041 | CJ.FTMS.Viewer TFM `net8.0-windows10.0.19041` |
 | (선택) dotnet-ef 9.0.9 | EF Core 마이그레이션 CLI. **빌드·실행에는 불필요**(app-server는 `EnsureCreated` 사용, Migrations 폴더 없음). 각 프로젝트 폴더의 `.config/dotnet-tools.json`에 정의 → 해당 폴더에서 `dotnet tool restore` |
 | 로컬 NuGet 피드 | DxfBlazorViewer가 참조하는 `Assembly.ChatHub.Shared / JwtTokenGenerator / LoginManager 1.0.0.1` 패키지 필요 (zip에 없음) |
@@ -347,7 +347,7 @@ DB 준비: `tapsuser` 계정, `authdb`, `ftmsdb` 생성 (`Database/1-1 ... ftmsu
 |---|---|---|
 | 개발 PC | Visual Studio 2022 17.8+ (ASP.NET/웹 + .NET 데스크톱 워크로드) | 빌드 |
 | 개발 PC | .NET 8 SDK | 빌드 |
-| 개발 PC | `wasm-tools` 워크로드 | DxfBlazorViewer(SkiaSharp WASM 네이티브 빌드) |
+| 개발 PC | `wasm-tools`(SDK 8) / `wasm-tools-net8`(SDK 9·10) 워크로드 | DxfBlazorViewer(SkiaSharp WASM 네이티브 빌드) |
 | 서버 | ASP.NET Core Runtime 8.0 (Hosting Bundle 권장) | app-server / web-server / reverse-proxy 실행 |
 | 서버 | PostgreSQL 17 (또는 18) | DB |
 | 서버 | TimescaleDB 확장 (PG 버전에 맞는 것) | 하이퍼테이블·집계 스크립트 |
@@ -355,7 +355,7 @@ DB 준비: `tapsuser` 계정, `authdb`, `ftmsdb` 생성 (`Database/1-1 ... ftmsu
 
 ### 9.2 설정 순서
 
-1. **개발 PC 준비**: VS 설치 → `dotnet workload install wasm-tools`
+1. **개발 PC 준비**: VS 설치 → `dotnet --version` 확인 후 SDK 8이면 `dotnet workload install wasm-tools`, 9 이상이면 `dotnet workload install wasm-tools-net8` (관리자)
 2. **로컬 NuGet 피드**(DxfBlazorViewer 빌드용): `Assembly.ChatHub.Shared`, `Assembly.JwtTokenGenerator`, `Assembly.LoginManager`는 `GeneratePackageOnBuild=true`, Version 1.0.0.1 → Release 빌드 후 `bin\Release\*.nupkg`를 한 폴더(예: `C:\LocalNuget`)에 복사, `.packages` 폴더와 함께 `dotnet nuget add source`로 등록
 3. **DB**: PostgreSQL + TimescaleDB 설치 → `postgresql.conf`에 `shared_preload_libraries = 'timescaledb'` → 재시작 → `tapsuser` / `authdb` / `ftmsdb` 생성 → `ftmsdb`에서 `CREATE EXTENSION timescaledb; CREATE EXTENSION pgcrypto;`
 4. **app-server 설정** (`appsettings.json`): `ConnectionStrings`, `Jwt:SecretKey`(새 값), `TcpServerFinal:Ports`
