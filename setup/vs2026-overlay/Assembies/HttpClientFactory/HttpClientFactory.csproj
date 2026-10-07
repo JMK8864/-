@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<Version>1.0.0.1</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<!-- 자동 버전 생성 -->
+		<!--<Version>1.0.0-$(SourceRevisionId)</Version>-->
+		<!-- 또는 현재 날짜/시간 기반 -->
+		<!--<Version>1.0.$([System.DateTimeOffset]::Now.ToString("yyyyMMdd")).$([System.DateTimeOFfset]::Now.ToString("HHmm"))</Version>-->
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="System.Memory" Version="4.6.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+	</ItemGroup>
+
+</Project>

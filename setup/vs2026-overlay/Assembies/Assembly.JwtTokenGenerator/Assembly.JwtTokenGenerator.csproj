@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<Version>1.0.0.1</Version>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="JwtTokenGenerator_backup.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="JwtTokenGenerator_backup.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.19.1" />
+	  <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
+	</ItemGroup>
+
+</Project>

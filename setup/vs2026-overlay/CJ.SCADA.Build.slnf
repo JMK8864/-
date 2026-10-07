@@ -1,0 +1,29 @@
+{
+  "solution": {
+    "path": "CJ.SCADA.sln",
+    "projects": [
+      "Assembies\\YiApp.MvvmCore\\YiApp.MvvmCore.csproj",
+      "Assembies\\Assembly.Iocp\\Assembly.Iocp.csproj",
+      "Assembies\\HttpClientFactory\\HttpClientFactory.csproj",
+      "Assembies\\Assembly.SR\\Assembly.ChatHub.csproj",
+      "Assembies\\Assembly.SR.Shared\\Assembly.ChatHub.Shared.csproj",
+      "Clients\\CJ.FTMS.Viewer\\CJ.FTMS.Viewer.csproj",
+      "servers\\ftms\\app-server.ftms\\app-server.ftms.csproj",
+      "servers\\ftms\\web-server.ftms\\web-server.ftms.csproj",
+      "Assembies\\Blazored.Toast\\Blazored.Toast.csproj",
+      "Assembies\\Assembly.Data.Collector\\Assembly.Data.Collector.csproj",
+      "Assembies\\Assembly.Dxf.Parser\\Assem.DxfSceneParser.csproj",
+      "Assembies\\Assembly.LoginManager\\Assembly.LoginManager.csproj",
+      "Assembies\\Assembly.SR.ChatClientManager\\Assembly.SR.ChatClientManager.csproj",
+      "Assembies\\Assembly.JwtTokenGenerator\\Assembly.JwtTokenGenerator.csproj",
+      "servers\\ftms\\tcpclient.emul.ftms\\tcpclient.emul.ftms.csproj",
+      "servers\\ftms\\reverse-proxy.ftms\\reverse-proxy.ftms.csproj",
+      "servers\\ftms\\app-shared.ftms\\app-shared.ftms.csproj",
+      "servers\\ftms\\wasm-scada.ftms\\wasm-scada.ftms.csproj",
+      "Assembies\\EventDataStore\\EventDataStore.csproj",
+      "Assembies\\MemoryStoreTemplate\\MemoryStoreTemplate.csproj",
+      "servers\\ftms\\tcplinent.emul.console.ftms\\tcplinent.emul.console.ftms.csproj",
+      "servers\\ftms\\DxfBlazorViewer\\DxfBlazorViewer.Client.csproj"
+    ]
+  }
+}

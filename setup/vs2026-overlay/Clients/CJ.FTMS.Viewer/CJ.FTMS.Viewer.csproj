@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<!--<TargetFramework>net8.0-windows</TargetFramework>-->
+		<TargetFramework>net8.0-windows10.0.19041</TargetFramework>
+		<!--<Nullable>enable</Nullable>-->
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Embedded.Resource\Conveyor.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="**/*Copy*.cs" />
+		<Compile Remove="**/*.backup.cs" />
+		<Compile Remove="**/*.temp.cs" />
+		<Compile Remove="**/*.temp" />
+		<Compile Remove="Backup/**" />
+		<Compile Remove="Templates/**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Embedded.Resource\Conveyor.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="SkiaHelper\LayeredPolygonRenderer.temp.cs" />
+		<None Include="SkiaHelper\StaticPolygonRenderer.temp.cs" />
+		<None Include="SkiaHelper\TiledPolygonRenderer.temp.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="netDxf.netstandard" Version="3.0.1" />
+		<PackageReference Include="SkiaSharp.Views.WPF" Version="3.119.2" />
+		<PackageReference Include="System.Management" Version="9.0.17" />
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Assembies\HttpClientFactory\HttpClientFactory.csproj" />
+	  <ProjectReference Include="..\..\Assembies\YiApp.MvvmCore\YiApp.MvvmCore.csproj" />
+	</ItemGroup>
+
+</Project>

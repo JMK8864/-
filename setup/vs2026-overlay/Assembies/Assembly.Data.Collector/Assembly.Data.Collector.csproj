@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--<TargetFramework>netstandard2.0</TargetFramework>-->
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<Version>1.0.0.1</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<!-- 자동 버전 생성 -->
+		<!--<Version>1.0.0-$(SourceRevisionId)</Version>-->
+		<!-- 또는 현재 날짜/시간 기반 -->
+		<!--<Version>1.0.$([System.DateTimeOIffset]::Now.ToString("yyyyMMdd")).$([System.DateTimeOffset]::Now.ToString("HHmm"))</Version>-->
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!--<PackageReference Include="Microsoft.Data.SqlClient " Version="5.2.0" />-->
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Data.SQLite.Core" Version="8.0.28" />
+		<PackageReference Include="Npgsql" Version="8.0.9" />
+	</ItemGroup>
+
+</Project>

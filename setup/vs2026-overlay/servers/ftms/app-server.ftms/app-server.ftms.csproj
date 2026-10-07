@@ -1,0 +1,104 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+	<!--<Project Sdk="Microsoft.NET.Sdk.Worker">-->
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>dotnet-ftms_gw_svc-21b1733e-c9ee-498e-a39e-91e37083cb36</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Controllers\AssetsController\**" />
+	  <Content Remove="Controllers\AssetsController\**" />
+	  <EmbeddedResource Remove="Controllers\AssetsController\**" />
+	  <None Remove="Controllers\AssetsController\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Services\BlobStoreService - Copy.cs" />
+	  <Compile Remove="Services\JsonStoreService - Copy.cs" />
+	  <Compile Remove="TcpClient-NA\IProxyClientManager.cs" />
+	  <Compile Remove="TcpClient-NA\ManagedProxyClient.cs" />
+	  <Compile Remove="TcpClient-NA\ProxyClientManager.cs" />
+	  <Compile Remove="TcpServer\TcpClientFinalService.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Database\auth.db" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include=".default.settings\dock_sorting_params.json">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include=".default.settings\master_configs.json">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include=".default.settings\notify_event_codes.json">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include=".default.settings\conveyor_status_codes.json">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Database\auth.db" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include=".default.settings\ftms_event_list.tsv">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </None>
+	  <None Include=".rest\ScanDataController.http" />
+	  <None Include=".rest\Login.http" />
+	  <None Include="TcpClient-NA\IProxyClientManager.cs" />
+	  <None Include="TcpClient-NA\ManagedProxyClient.cs" />
+	  <None Include="TcpClient-NA\ProxyClientManager.cs" />
+	  <None Include="TcpServer\.NA\TcpClientFinalService.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!--<PackageReference Include="DxfScene.Server" Version="1.0.0.2" />-->
+		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.28" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.28" />
+
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.28" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.28" />
+
+		<PackageReference Include="EFCore.NamingConventions" Version="8.0.3" />
+
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+
+		<PackageReference Include="Npgsql" Version="8.0.9" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+
+		<!--<PackageReference Include="BCrypt.Net-Next" Version="4.*" />-->
+		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+		<!-- for dxf...-->
+		<!--<PackageReference Include="IxMilia.Dxf" Version="0.8.4" />
+		<PackageReference Include="MessagePack" Version="3.1.7" />
+		<PackageReference Include="System.IO.Hashing" Version="8.*" />-->
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="DTOs\" />
+	  <Folder Include="Hubs\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\Assembies\Assembly.Data.Collector\Assembly.Data.Collector.csproj" />
+	  <ProjectReference Include="..\..\..\Assembies\Assembly.Dxf.Parser\Assem.DxfSceneParser.csproj" />
+	  <ProjectReference Include="..\..\..\Assembies\Assembly.SR.Shared\Assembly.ChatHub.Shared.csproj" />
+	  <ProjectReference Include="..\..\..\Assembies\EventDataStore\EventDataStore.csproj" />
+	  <ProjectReference Include="..\app-shared.ftms\app-shared.ftms.csproj" />
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	  <Exec Command="if not exist &quot;$(TargetDir)..\default.settings\&quot; mkdir &quot;$(TargetDir)..\default.settings\&quot;&#xD;&#xA;&#xD;&#xA;xcopy /Y /I &quot;$(ProjectDir).default.settings\conveyor_status_codes.json&quot; &quot;$(TargetDir)..\default.settings\&quot;&#xD;&#xA;xcopy /Y /I &quot;$(ProjectDir).default.settings\dock_sorting_params.json&quot; &quot;$(TargetDir)..\default.settings\&quot;&#xD;&#xA;xcopy /Y /I &quot;$(ProjectDir).default.settings\master_configs.json&quot; &quot;$(TargetDir)..\default.settings\&quot;&#xD;&#xA;xcopy /Y /I &quot;$(ProjectDir).default.settings\notify_event_codes.json&quot; &quot;$(TargetDir)..\default.settings\&quot;&#xD;&#xA;&#xD;&#xA;xcopy /Y /I &quot;$(ProjectDir).default.settings\ftms_event_list.tsv&quot; &quot;$(TargetDir)..\default.settings\&quot;&#xD;&#xA;&#xD;&#xA;" />
+	</Target>
+</Project>

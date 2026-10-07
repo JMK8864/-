@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+	<!--<Project Sdk="Microsoft.NET.Sdk.Worker">-->
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>dotnet-ftms_gw_svc-21b1733e-c9ee-498e-a39e-91e37083cb36</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Controllers\AuthController.old.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include=".Tests\api-tests.http" />
+	  <None Include="Controllers\AuthController.old.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!--<PackageReference Include="MediatR" Version="13.*" />-->
+		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.28" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.28" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.28" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.28" />
+		<!--<PackageReference Include="Npgsql" Version="8.0.9" />-->
+		<!--<PackageReference Include="BCrypt.Net-Next" Version="4.*" />-->
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\Assembies\Assembly.SR.Shared\Assembly.ChatHub.Shared.csproj" />
+	</ItemGroup>
+</Project>

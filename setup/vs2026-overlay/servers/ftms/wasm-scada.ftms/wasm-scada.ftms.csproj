@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+		<!--<BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+		<BlazorEnableCompression>false</BlazorEnableCompression>
+		--><!-- 중요: 디버그 심볼 활성화 --><!--
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>-->
+		<!--check reverse-proxy.ftms 프로젝트 launchSettings.json 파일 확인...
+		"inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}"-->
+
+	</PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Data\TokenService - 20250924.backup.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Pages\components\Login - 20250924.backup.razor" />
+    <Content Remove="Pages\EventLogView - Copy.razor" />
+    <Content Remove="Pages\SortingRuleEditor - old.razor" />
+    <Content Remove="Pages\Users\UsersRoleManagement - Copy.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.28" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.28" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.28" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+		<PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.2" />
+		<PackageReference Include="SkiaSharp" Version="3.119.2" />
+		<PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="3.119.2" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Pages\EventLogView - Copy.razor" />
+    <None Include="Pages\SortingRuleEditor - old.razor" />
+    <None Include="Pages\Users\UsersRoleManagement - Copy.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Assembies\Assembly.LoginManager\Assembly.LoginManager.csproj" />
+    <ProjectReference Include="..\..\..\Assembies\Assembly.SR.Shared\Assembly.ChatHub.Shared.csproj" />
+    <ProjectReference Include="..\..\..\Assembies\Blazored.Toast\Blazored.Toast.csproj" />
+    <ProjectReference Include="..\app-shared.ftms\app-shared.ftms.csproj" />
+  </ItemGroup>
+
+</Project>
