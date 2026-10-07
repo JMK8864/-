@@ -371,3 +371,4 @@ DB 준비: `tapsuser` 계정, `authdb`, `ftmsdb` 생성 (`Database/1-1 ... ftmsu
 - **B15** `EventDataStoreService`: 저장은 `dock_message_events`(EF 매핑)로 하고, 복원(`RestoreAsync`)·정리(`DeleteOldEventsAsync`)는 `event_data_store` 테이블을 읽음 → **재시작 시 Heartbeat/누적 상태가 복원되지 않고**, `dock_message_events`는 TimescaleDB 보존정책(90일)이 없으면 계속 증가
 - app-server의 기준 폴더가 Linux에서는 `/`(루트) → `/logs`, `/default.settings`, `/assets`, `/data` 쓰기 권한 필요 (Docker 또는 Windows 권장)
 - PostBuild의 `xcopy`는 Windows 전용 → Linux 빌드 실패 가능
+- **SkiaSharp 와일드카드(`3.*`) 문제**: 2026년 현재 최신 3.119.4는 `net8.0-windows` 빌드를 제공하지 않음(WPF: net9/net10-windows, net462, net48만). CJ.FTMS.Viewer가 .NET Framework용 DLL로 대체 복원되어 NU1701 경고 발생 → `SkiaSharp.Views.WPF`를 **3.119.2로 고정**(net8.0-windows10.0.19041 포함 마지막 버전). wasm-scada / web-server.pac의 `SkiaSharp*` `3.*`도 같은 버전으로 고정 권장
