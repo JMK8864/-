@@ -111,21 +111,21 @@ Content-Type: application/json
 
 ```http
 GET /api/ProcessCount/live/latest-n-minutes?dockIds=B22&dockIds=B23
-→ 200 [ { "dockId":"B22","vehicleNumber":"...","scanner":{"scan":..,"multi":..}, "judge":{...}, "sorting":{...} } ]
+→ 200 [ ProcessCountL 배열 (dockId, vehicleNumber, createdAt, scanner, dimensioner, judge, sorting …, camelCase) ]
 ```
 
 ```http
 POST /api/setting/json?category=dock.sorting.param&machineId=B22&groupId=global&key=curr.param&userId=admin
 Content-Type: application/json
 
-{"dockId":"B22","paramName":"SET-A","updatedAt":"2026-10-12T00:00:00Z"}
+{"dockId":"B22","paramName":"SET-A","updatedAt":"2026-10-12T00:00:00Z"}   (DockSortingActiveParameter, 예시)
 → DB 저장 + 메모리 반영 → B22의 다음 Heartbeat 응답 SetParameter 로 전달
 ```
 
 ```http
 PUT /api/EventLog/acknowledge/bulk
 Content-Type: application/json
-[101, 102, 103]
+{"eventIds":[101,102,103],"eventMemo":"현장 확인 완료","acknowledgedBy":"admin"}
 ```
 
 ## 5. 주의
