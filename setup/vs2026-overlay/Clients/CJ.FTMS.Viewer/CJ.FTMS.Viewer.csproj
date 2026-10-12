@@ -45,6 +45,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- Json 헬퍼(app-shared.ftms)를 링크로 포함: CS0103 'Json' 이름이 없음 오류 해결 -->
+		<Compile Include="..\..\servers\ftms\app-shared.ftms\Helpers\Json.cs" Link="Shared\Json.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <ProjectReference Include="..\..\Assembies\HttpClientFactory\HttpClientFactory.csproj" />
 	  <ProjectReference Include="..\..\Assembies\YiApp.MvvmCore\YiApp.MvvmCore.csproj" />
 	</ItemGroup>
