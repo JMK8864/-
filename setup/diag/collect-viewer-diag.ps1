@@ -29,6 +29,7 @@ Get-ChildItem -Recurse -Include *.cs -File -ErrorAction SilentlyContinue |
     ForEach-Object { "$($_.Path):$($_.LineNumber): $($_.Line.Trim())" } | Out-File $out -Append -Encoding utf8
 
 Section '5. 상위 폴더의 Directory.Build.props / .targets / Directory.Packages.props'
+& {
 $d = Get-Item $root
 while ($d -ne $null) {
     foreach ($n in 'Directory.Build.props','Directory.Build.targets','Directory.Packages.props') {
@@ -36,7 +37,8 @@ while ($d -ne $null) {
         if (Test-Path $f) { "--- $f"; Get-Content $f } 
     }
     $d = $d.Parent
-} 2>&1 | Out-File $out -Append -Encoding utf8
+}
+} | Out-File $out -Append -Encoding utf8
 
 Section '6. 프로젝트 참조'
 & dotnet list $proj reference 2>&1 | Out-File $out -Append -Encoding utf8
