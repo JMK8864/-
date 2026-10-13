@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+	<WasmBuildNative>true</WasmBuildNative>
+    <Nullable>enable</Nullable>
+	<WasmEnableThreads>false</WasmEnableThreads>
+	<!--<InvariantGlobalization>true</InvariantGlobalization>
+	<WasmEnableSIMD>true</WasmEnableSIMD>-->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyVersion>1.0.0.1</AssemblyVersion>
+    <FileVersion>1.0.0.1</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Pages\Settings.razor - 복사본.cs" />
+    <Compile Remove="Shared\DxfSkiaRendererFast - 복사본.cs" />
+    <Compile Remove="Shared\DxfSkiaRendererFast_v1.cs" />
+    <Compile Remove="Shared\DxfSkiaRendererFast_v2.cs" />
+    <Compile Remove="Shared\DxfSkiaRendererFast_v3.cs" />
+    <Compile Remove="Shared\test.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Pages\Settings - 복사본.razor" />
+    <Content Remove="Pages\Viewer - 복사본.razor" />
+    <Content Remove="Pages\Viewer_v1.razor" />
+    <Content Remove="Pages\Viewer_v2.razor" />
+    <Content Remove="Shared\NavMenu.razor" />
+    <Content Remove="wwwroot\css\app.css" />
+    <Content Remove="wwwroot\css\site.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Pages\Index.razor.css" />
+    <None Remove="Shared\MainLayout.razor.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Assembly.ChatHub.Shared" Version="1.0.0.1" />
+    <PackageReference Include="Assembly.JwtTokenGenerator" Version="1.0.0.1" />
+    <PackageReference Include="Assembly.LoginManager" Version="1.0.0.1" />
+    <PackageReference Include="IxMilia.Dxf" Version="0.8.4" />
+    <PackageReference Include="MessagePack" Version="3.1.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.22" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.21" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.21" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <PackageReference Include="netDxf" Version="2023.11.10" />
+    <PackageReference Include="SkiaSharp" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.0" />
+    <PackageReference Include="System.IO.Hashing" Version="9.0.9" />
+    <PackageReference Include="System.Text.Json" Version="9.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\fonts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Assembies\Blazored.Toast\Blazored.Toast.csproj" />
+  </ItemGroup>
+
+</Project>
