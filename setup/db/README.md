@@ -49,7 +49,7 @@
    - `postgresql.conf`에 `shared_preload_libraries = 'timescaledb'`가 들어갔는지 확인
    - Linux는 `linux/install_timescaledb_ftms.sh`, Docker는 `timescale/timescaledb` 이미지 사용
 3. **01 실행** (postgres 계정):
-   `psql -U postgres -v app_password="'새비밀번호'" -f 01_create_db_and_user.sql`
+   `psql -U postgres -v app_password=새비밀번호 -f 01_create_db_and_user.sql`
 4. **app-server.ftms 1회 실행 → 정상 기동 로그 확인 후 종료**
    (EF `EnsureCreated`는 DB에 테이블이 하나라도 있으면 아무것도 만들지 않음 → 반드시 02보다 먼저)
 5. **02 실행** (tapsuser): `psql -U tapsuser -d ftmsdb -f 02_ftmsdb_timescale_setup.sql`
