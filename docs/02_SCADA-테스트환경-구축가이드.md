@@ -17,7 +17,7 @@
  │  │   └ TCP 6004~6006 (도크 수신)      │◄──────────┤   그 외                 → 127.0.0.1:8122 │
  │  └ DxfBlazorViewer   0.0.0.0:8122     │           │                                          │
  │                                      │           │ ftms-db  (timescale/timescaledb:pg17)    │
- │ tcplinent.emul.console.ftms ─TCP 6004─┘           │   -p 5432:5432, 볼륨 ftms_db_data         │
+ │ tcplinent.emul.console.ftms ─TCP 6004─┘           │   --network host :5432, 볼륨 ftms_db_data │
  │ DBeaver ───────────── 127.0.0.1:5432 ────────────►│   authdb / ftmsdb / tapsuser            │
  │ 브라우저 ─────────── http://localhost/ ──────────►│                                          │
  └──────────────────────────────────────┘           └──────────────────────────────────────────┘
@@ -221,7 +221,7 @@ Set-Service postgresql-x64-11 -StartupType Disabled
 netstat -ano | findstr "LISTENING" | findstr ":80 "
 ```
 - 비어 있음 → 12단계 nginx 를 80 으로 사용
-- `PID 4`(System, http.sys) → 검증 PC 와 같은 상태. 실제 웹 서비스(IIS 등)가 돌지 않으면 **nginx 가 80 을 정상 사용**함(검증 완료). IIS 를 쓰고 있다면 12단계에서 nginx 를 8080 으로 사용
+- `PID 4`(System) → ⚠ **미러 모드에서는 WSL 안에서 연 포트가 Windows 에서 PID 4 로 보입니다** (검증 PC 의 PID 4 는 IIS 가 아니라 WSL 쪽이었음 — NAT 로 바꾸자 사라짐). WSL 에서 `sudo ss -ltnp | grep ':80 '` 로 확인. 정말 IIS 등 Windows 웹 서비스면 12단계에서 nginx 를 8080 으로 사용
 - 다른 PID → `Get-Process -Id <PID>` 로 확인
 
 **5-4. 이전에 만든 컨테이너 정리 (WSL)**
@@ -239,27 +239,35 @@ docker rm -f <컨테이너이름>
 
 **6-1. 실행 (WSL)** — `관리자비밀번호` 만 바꿔서 한 줄로 실행
 ```bash
-docker run -d --name ftms-db -p 5432:5432 -e POSTGRES_PASSWORD='관리자비밀번호' -e TZ=Asia/Seoul -v ftms_db_data:/var/lib/postgresql/data --restart unless-stopped timescale/timescaledb:latest-pg17
+docker run -d --name ftms-db --network host -e POSTGRES_PASSWORD='관리자비밀번호' -e TZ=Asia/Seoul -v ftms_db_data:/var/lib/postgresql/data --restart unless-stopped timescale/timescaledb:latest-pg17
 ```
 | 옵션 | 의미 |
 |---|---|
-| `-p 5432:5432` | Windows 127.0.0.1:5432 로 접속 가능 |
+| `--network host` | 컨테이너의 PostgreSQL 이 WSL 의 5432 에서 직접 대기 → 미러 모드로 Windows 127.0.0.1:5432 와 공유 (nginx 와 같은 방식) |
 | `POSTGRES_PASSWORD` | `postgres` 관리자 비밀번호 (**볼륨을 처음 만들 때만 적용**) |
 | `-v ftms_db_data:...` | 데이터를 볼륨에 보관 → 컨테이너를 지워도 데이터 유지 |
 | `--restart unless-stopped` | Docker 가 켜지면 자동 시작 |
+
+> **왜 `-p 5432:5432` 가 아닌가**: 검증 PC 에서 처음에는 `-p` 로 동작했으나, 네트워크 모드를 NAT→미러로 바꾼 뒤 `-p` 포트 연결이 **오류 없이 적용되지 않는**(PORTS 칸 비어 있음) 현상이 재현되었습니다. 미러 모드에서는 `--network host` 가 확실합니다. NAT 모드 PC 는 `-p 5432:5432` 사용 (부록 A).
 
 **6-2. 확인 (WSL)**
 ```bash
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
-✅ `ftms-db   Up ...   0.0.0.0:5432->5432/tcp`
+✅ `ftms-db   Up ...` (host 네트워크라 PORTS 칸은 비어 있는 것이 정상)
+```bash
+sudo ss -ltnp | grep 5432
+```
+✅ `0.0.0.0:5432 ... postgres`
+- 컨테이너가 바로 `Exited` 면 `docker logs ftms-db` → `could not bind ... Address already in use` 면 5432 를 다른 프로그램이 사용 중 → 5-1, 5-2
 
 **6-3. Windows 에서 접속 확인 (PowerShell)**
 ```powershell
 Test-NetConnection 127.0.0.1 -Port 5432
 ```
 ✅ `TcpTestSucceeded : True`
-> `localhost` 로 테스트하면 IPv6 `::1` 경고가 나올 수 있습니다(WSL 포트 전달은 IPv4). 이 가이드는 DB 주소를 모두 **127.0.0.1** 로 씁니다.
+> 이 가이드는 DB 주소를 모두 **127.0.0.1** 로 씁니다 (`localhost` 는 IPv6 `::1` 을 먼저 시도해 지연·경고가 날 수 있음).
+> 미러 + host 네트워크에서는 사내 다른 PC 도 `<이 PC IP>:5432` 로 DB 에 닿을 수 있으므로, Windows 방화벽에서 5432 인바운드를 열지 마세요.
 
 ---
 
@@ -616,6 +624,17 @@ Test-NetConnection 127.0.0.1 -Port 5432
 | DB 로그 | (WSL) `docker logs --tail 20 ftms-db` |
 | app-server 오류 | (PowerShell, app-server.ftms 폴더) `Select-String -Path .\bin\Debug\logs\app-server.ftms-*.txt -Pattern "ERR\]" \| Select-Object -Last 10` |
 | 로그의 `An error occurred using the connection to database` + `Failed to delete old events` | 그 시각에 DB(WSL)가 꺼져 있었음 → 13단계 |
+| 컨테이너가 `Exited` (`wsl --shutdown`·모드 변경 후) | (WSL) `docker inspect -f '{{.State.Error}}' <이름>` 로 원인 확인 → `docker start <이름>` |
+| `Conflict. The container name "/ftms-nginx" is already in use` | 이전 컨테이너 존재 → `docker rm -f ftms-nginx` 후 다시 `docker run` (설정 파일은 유지됨) |
+| `-p` 로 만든 컨테이너의 PORTS 칸이 비어 있고 Windows 에서 접속 안 됨 | 미러 모드에서 포트 연결 미적용 → `--network host` 로 다시 생성 (6-1, 12-5) |
+| 포트가 비어 있는데 `address already in use` | (PowerShell) `netsh interface ipv4 show excludedportrange protocol=tcp` 에 해당 포트가 있으면 Windows 예약 → (관리자) `net stop winnat` → 컨테이너 재시작 → `net start winnat` |
+
+### 14-2a. 네트워크 모드(미러↔NAT)를 바꿀 때 순서
+1. portproxy 정리: `netsh interface portproxy show all` → 남은 규칙 `delete`
+2. `%UserProfile%\.wslconfig` 의 `networkingMode` 변경 → (PowerShell) `wsl --shutdown` → WSL 다시 열기 → `wslinfo --networking-mode`
+3. nginx 설정 upstream 변경 (미러 `127.0.0.1` / NAT `winhost`) → `docker rm -f ftms-nginx` → 해당 모드의 `docker run`
+4. ftms-db 도 해당 모드 방식으로 다시 생성 (`docker rm -f ftms-db` → 미러 6-1 / NAT 부록 A) — 데이터는 볼륨에 유지
+5. `docker ps` 로 둘 다 Up, (PowerShell) `Test-NetConnection 127.0.0.1 -Port 5432` → VS 재실행
 
 ### 14-3. 테스트 데이터 정리 — `setup/db/05_clear_test_data.sql`
 app-server·에뮬레이터 중지 → DBeaver tapsuser@ftmsdb → `Alt+X` (테스트 환경 전용)
@@ -636,7 +655,12 @@ docker volume rm ftms_db_data
 
 ## 부록 A. NAT 모드에서 nginx 구성
 
-`wslinfo --networking-mode` 가 `nat` 이고 미러 모드로 바꿀 수 없는 경우.
+`wslinfo --networking-mode` 가 `nat` 이고 미러 모드로 바꿀 수 없는 경우. (검증 PC 에서 NAT 전환을 시험한 뒤 미러로 되돌림)
+
+0. (WSL) ftms-db 는 NAT 에서는 포트 연결 방식으로 생성 (`--network host` 대신 `-p 5432:5432`, 데이터는 볼륨에 유지)
+   ```bash
+   docker run -d --name ftms-db -p 5432:5432 -e TZ=Asia/Seoul -v ftms_db_data:/var/lib/postgresql/data --restart unless-stopped timescale/timescaledb:latest-pg17
+   ```
 
 1. (WSL) Windows 호스트 IP 확인 — `via` 뒤의 172.x.x.1 값 (= `<WINIP>`)
    ```bash
@@ -657,6 +681,14 @@ docker volume rm ftms_db_data
    ```
 6. (WSL) nginx 를 거쳐 확인: `curl -s -m 5 http://127.0.0.1/api/status` → JSON
 - ⚠ NAT 모드의 게이트웨이 IP 는 WSL 재시작 시 바뀔 수 있음 → 바뀌면 `docker rm -f ftms-nginx` 후 5번 재실행
+7. 사내 다른 PC 접속 (NAT 는 자동으로 안 됨) — WSL IP(`hostname -I` 첫 값 = `<WSLIP>`), 이 PC 사내 IP(`<LANIP>`) 확인 후 (관리자 PowerShell)
+   ```powershell
+   netsh interface portproxy add v4tov4 listenaddress=<LANIP> listenport=80 connectaddress=<WSLIP> connectport=80
+   ```
+   확인: `netsh interface portproxy show v4tov4`, `Get-Service iphlpsvc`(Running), `Get-NetTCPConnection -LocalPort 80 -State Listen` 에 `<LANIP> svchost` → 다른 PC 에서 `http://<LANIP>/`
+   - `listenaddress` 를 `0.0.0.0` 이 아닌 사내 IP 로 지정 (wslrelay 가 쓰는 127.0.0.1:80 과 겹치지 않게)
+   - `<WSLIP>` 가 바뀌면 `netsh interface portproxy delete v4tov4 listenaddress=<LANIP> listenport=80` 후 다시 추가
+   - 미러로 되돌릴 때는 portproxy 를 먼저 삭제 (남아 있으면 미러 모드 nginx 의 80 과 충돌)
 
 ## 부록 B. 다른 PC 에서 접속
 

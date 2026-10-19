@@ -21,7 +21,7 @@
 
 | 이름 | 이미지 | 실행 (WSL, 가이드 단계) |
 |---|---|---|
-| ftms-db | `timescale/timescaledb:latest-pg17` | 6-1 — `-p 5432:5432`, 볼륨 `ftms_db_data` |
+| ftms-db | `timescale/timescaledb:latest-pg17` | 6-1 — `--network host`(미러) / `-p 5432:5432`(NAT, 부록 A), 볼륨 `ftms_db_data` |
 | ftms-nginx | `nginx:latest` | 12-5 — `--network host`, `~/ftms-nginx/default.conf` 마운트 |
 
 ## Windows → WSL 파일 복사 예
