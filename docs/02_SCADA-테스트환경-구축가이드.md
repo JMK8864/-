@@ -468,6 +468,7 @@ netstat -ano | findstr "LISTENING" | findstr ":6004"
 - `servers\ftms\app-server.ftms\Properties\launchSettings.json` → http 프로필 `"applicationUrl": "http://0.0.0.0:8121"`
 - `servers\ftms\DxfBlazorViewer\Properties\launchSettings.json` → http 프로필 `"applicationUrl": "http://0.0.0.0:8122"`
 - (미러 모드에서는 localhost 바인딩도 동작하지만, NAT 모드·다른 PC 접속과 같은 설정으로 맞추기 위해 0.0.0.0 사용)
+- **브라우저 자동 실행**: 10단계에서는 reverse-proxy.ftms 만 `"launchBrowser": true` 였고 app-server·DxfBlazorViewer 는 `false`("YARP 가 브라우저를 띄울 것이므로") → YARP 를 빼면 브라우저가 뜨지 않음. DxfBlazorViewer http 프로필에 `"launchBrowser": true`, `"launchUrl": "http://localhost/"` 를 넣으면 F5 때 nginx 주소로 열림 (`setup/app-config/DxfBlazorViewer.launchSettings.json` 에 반영)
 - F5 → Windows 방화벽 창이 뜨면 **허용**
 
 (PowerShell)
