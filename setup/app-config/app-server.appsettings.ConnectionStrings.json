@@ -1,0 +1,7 @@
+// [가이드 8단계] servers/ftms/app-server.ftms/appsettings.json 의 "ConnectionStrings" 부분만 아래로 교체
+//   - Host 는 localhost 가 아닌 127.0.0.1  (IPv6 ::1 먼저 시도 → 지연/실패 방지)
+//   - Password = 7단계 01_create_user_and_db.sql 에서 정한 tapsuser 비밀번호
+  "ConnectionStrings": {
+    "DefaultConnection1": "Host=127.0.0.1;Port=5432;Database=authdb;Username=tapsuser;Password=앱비밀번호",
+    "DefaultConnection2": "Host=127.0.0.1;Port=5432;Database=ftmsdb;Username=tapsuser;Password=앱비밀번호"
+  },

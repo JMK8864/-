@@ -1,0 +1,11 @@
+# [가이드 3단계 / 13단계]  Windows: %UserProfile%\.wslconfig
+#   수정 후 PowerShell 에서  wsl --shutdown  → WSL 터미널 다시 열기
+#   이미 .wslconfig 가 있으면 [wsl2] 아래 항목만 추가/수정
+
+[wsl2]
+# WSL 이 Windows 와 IP·localhost 를 공유 (이 가이드의 기본 전제)
+networkingMode=mirrored
+
+# WSL 터미널을 모두 닫아도 VM(=Docker, 컨테이너)을 내리지 않음 (보조 수단)
+#   WSL 버전에 따라 효과가 없을 수 있음 → 확실한 방법은 가이드 13단계 WSL-KeepAlive 작업
+vmIdleTimeout=-1
