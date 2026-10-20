@@ -5,6 +5,7 @@
 | [docs/01_CJ.SCADA-최종분석보고서.md](docs/01_CJ.SCADA-최종분석보고서.md) | 구조, 프로젝트별 기능, 중요 클래스, DB 구조, 문제점(보안·안정성·빌드), 테스트 결과, 권장 조치 |
 | [docs/02_SCADA-테스트환경-구축가이드.md](docs/02_SCADA-테스트환경-구축가이드.md) | Windows + VS2026 + WSL Docker(TimescaleDB, nginx) 테스트 환경을 **한 단계씩** 구축 (0~14단계 + 부록) |
 | [docs/03_부록-REST-API.md](docs/03_부록-REST-API.md) | REST 엔드포인트 목록, 화면별 호출 위치, 호출 예 |
+| [docs/04_주요클래스-함수-설명서.md](docs/04_주요클래스-함수-설명서.md) | app-server.ftms / DxfBlazorViewer.Client 주요 클래스·함수 설명, 특징, 주의할 점 |
 | [setup/](setup/README.md) | 가이드 단계별 SQL, 설정 파일, nginx 설정 |
 
 구성 요약
