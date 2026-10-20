@@ -1,0 +1,25 @@
+sequenceDiagram
+  autonumber
+  participant V as Viewer.razor.cs
+  participant SA as DxfServerAdapter
+  participant R as DxfSkiaRendererFast
+  participant API as app-server (nginx 경유)
+  participant C as ChatClientBackgroundService
+  V->>SA: Reload →<br/>FetchSceneAsync("/api/dxf")
+  SA->>API: Accept:<br/>application/x-msgpack (ETag)
+  API-->>SA: DxfSceneDto<br/>(MessagePack+LZ4)
+  SA-->>V: scene
+  V->>R: LoadFromScene → 엔티티 캐시<br/>· AssignDockIndices
+  loop 2초 StartStatsPolling
+    V->>API: GET<br/>/api/ProcessCount/live/latest-n-minutes
+    V->>R: SetJudgeMap<br/>(소/중/대/이형 비율 → 색)
+  end
+  loop 1초 StartDockStatusPolling
+    V->>API: GET /api/Dock/status
+    V->>V: ApplyDockStatusCompactFrame<br/>→ ElementState
+  end
+  loop 1초 StartAlarmPolling
+    V->>API: POST<br/>/api/EventLog/search/fast
+  end
+  C--)V: Heartbeat / ServerStatus<br/>/ CollectedCount (SignalR)
+  V->>R: OnPaint → Render(zoom, pan)<br/>또는 DockStatusDiagramRenderer

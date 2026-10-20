@@ -1,0 +1,17 @@
+sequenceDiagram
+  autonumber
+  participant B as 브라우저 Settings
+  participant SC as SettingsController (/api/setting)
+  participant DB as settings 테이블
+  participant CH as AssetItemUpdateChannel
+  participant SM as StateManager.ExecuteAsync
+  participant E as EventDataStore (메모리)
+  participant D as 도크
+  B->>SC: POST /api/setting/json<br/>(dock.sorting.param, B22)
+  SC->>DB: 저장 (Version, RowVersion)
+  SC->>CH: 변경 통지
+  CH->>SM: DispatchSettingChannelMessageAsync
+  SM->>E: UpdateAsync(DockSortingActiveParameter, B22)
+  D->>SM: 다음 heartbeat
+  SM-->>D: SetParameter = 새 설정
+  Note over SC,E: DELETE 는 채널 통지 없음<br/>→ 메모리에 이전 값 잔존

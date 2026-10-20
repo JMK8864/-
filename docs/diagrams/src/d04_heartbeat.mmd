@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  participant D as 도크
+  participant J as JsonMessagedHandler
+  participant SM as LogisticsSystemStateManager
+  participant E as EventDataStoreService
+  participant DS as DeviceStatusManager
+  participant DB as ftmsdb
+  participant CM as ConnectionManager
+  D->>J: {"type":"heartbeat",<br/>DeviceStatuses[...]}
+  J->>SM: GetResponseHeartbeatMessageAsync(msg)
+  SM->>SM: SanitizeStatusString_v2<br/>(상태 → "0001,00a0,…")
+  SM->>E: UpdateAsync(HeartBeat, dockId,<br/>saveToDb:true)
+  E--)DB: 10초마다 Flush →<br/>dock_message_events
+  SM->>E: GetAsync(DockSortingActiveParameter)
+  SM-->>J: (dockId, 응답 SetParameter)<br/>— 없으면 "Default"
+  J->>DS: ProcessHeartbeatMessageAsync(dockId)
+  DS->>DS: 인덱스별 이전 상태와 비교
+  DS->>DB: 변경분 →<br/>ftms_event_log (알람)
+  J->>CM: AddOrUpdateClientNickname(clientId,<br/>dockId)
+  J-->>D: HeartBeatResponse<br/>(서버 → 도크 설정 전달)

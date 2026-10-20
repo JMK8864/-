@@ -1,0 +1,17 @@
+stateDiagram-v2
+  direction LR
+  [*] --> 미접속: 앱 시작
+  미접속 --> 정상: heartbeat 수신
+  정상 --> 정상: heartbeat 1초
+  정상 --> 끊김: TCP 종료 감지 / 무수신 초과
+  끊김 --> 정상: heartbeat 재수신
+  정상 --> 미접속: 서버 재시작
+  note right of 끊김
+    화면 Offline (진회색)
+    이력 E0000.0050 끊김
+    복구 시 E0000.0051
+  end note
+  note left of 미접속
+    서버 응답에 도크 없음
+    → 화면 Offline
+  end note

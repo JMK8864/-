@@ -1,0 +1,58 @@
+classDiagram
+  direction TB
+  class TcpServerServiceBase~TConfig~ {
+    #FillPipeAsync()
+    #ReadPipeAsync()
+  }
+  class TcpServerFinalService {
+    -ListenOnPortAsync()
+    -HandleClientSessionAsync()
+    -CheckClientTimeoutsAsync()
+    -ProcessTcpCommandAsync()
+  }
+  class ITcpMessageHandler {
+    <<interface>>
+    +Priority
+    +CanHandle()
+    +HandleAsync()
+  }
+  class JsonMessagedHandler
+  class TcpServerConnectionManager {
+    +AddClient() RemoveClient()
+    +AddOrUpdateClientNickname()
+    +SendToClientAsync()
+  }
+  class LogisticsSystemStateManager {
+    +GetResponseHeartbeatMessageAsync()
+    +AccumProcessCountFromClientAsync()
+    +GetAllStatusAsync()
+    +GetProcessCountsAsync()
+  }
+  class EventDataStoreService {
+    +GetAsync() UpdateAsync()
+    +RestoreAsync()
+    -FlushAsync() DeleteOldEventsAsync()
+  }
+  class DataCollectorService {
+    -ProcessAggregationBufferAsync()
+    -UpsertBulkCollectedPayloadToRawCountDb()
+    -CallAggregationDbProcedureContinuouslyAsync()
+  }
+  class DeviceStatusManager {
+    +ProcessHeartbeatMessageAsync()
+  }
+  class DockController
+  class SettingsController
+  class ProcessCountController
+  TcpServerServiceBase <|-- TcpServerFinalService
+  ITcpMessageHandler <|.. JsonMessagedHandler
+  TcpServerFinalService o-- ITcpMessageHandler : Priority 순
+  TcpServerFinalService --> TcpServerConnectionManager
+  JsonMessagedHandler --> LogisticsSystemStateManager
+  JsonMessagedHandler --> DeviceStatusManager
+  JsonMessagedHandler --> DataCollectorService : DataCollectorChannel
+  LogisticsSystemStateManager --> EventDataStoreService
+  DataCollectorService --> LogisticsSystemStateManager
+  DockController --> LogisticsSystemStateManager
+  ProcessCountController --> LogisticsSystemStateManager
+  SettingsController --> LogisticsSystemStateManager : AssetItemUpdateChannel

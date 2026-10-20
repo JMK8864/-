@@ -1,0 +1,37 @@
+flowchart LR
+  subgraph SHELL["앱 셸"]
+    APP["App.razor<br/>서버시각·수집통계 바"]
+    ML["MainLayout<br/>역할별 메뉴"]
+    IDX["Index.razor (/)<br/>로그인"]
+  end
+  subgraph PAGES["페이지"]
+    MON["Monitoring (/monitor)"]
+    ALM["Alarm (/alarms)"]
+    STA["Stats · Ppc"]
+    SET["Settings (/settings)"]
+    RAW["RawData (/raw-data)"]
+    ADM["AdminHealth · UserRole"]
+  end
+  subgraph VIEW["Viewer 컴포넌트"]
+    V["Viewer.razor.cs"]
+    R["DxfSkiaRendererFast<br/>도면 렌더"]
+    DR["DockStatusDiagramRenderer<br/>도식 렌더"]
+    SA["DxfServerAdapter<br/>/api/dxf"]
+    LBL["LabelsModal"]
+  end
+  subgraph INFRA["공통 서비스"]
+    CC["ChatClientBackgroundService<br/>SignalR"]
+    LM["LoginManager<br/>RealAuthService"]
+    HC["HttpClient<br/>BaseAddress=현재 사이트"]
+  end
+  APP --> CC
+  ML --> LM
+  IDX --> LM
+  MON --> V
+  V --> R
+  V --> DR
+  V --> SA
+  V --> LBL
+  PAGES --> HC
+  V --> HC
+  LM --> HC

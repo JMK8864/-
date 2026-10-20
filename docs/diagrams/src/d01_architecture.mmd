@@ -1,0 +1,34 @@
+flowchart TB
+  subgraph FIELD["현장"]
+    DOCK["도크 PC / 에뮬레이터<br/>tcplinent.emul.console"]
+  end
+  subgraph WIN["Windows (VS)"]
+    subgraph APP["app-server.ftms :8121"]
+      TCP["TcpServerFinalService<br/>TCP 6004~6006"]
+      HND["JsonMessagedHandler"]
+      SM["LogisticsSystemStateManager"]
+      EDS["EventDataStoreService<br/>(메모리)"]
+      DCS["DataCollectorService"]
+      DSM["DeviceStatusManager"]
+      API["REST Controllers<br/>Minimal API"]
+      HUB["ChatHub /chathub<br/>WebSocketHeartbeatService"]
+    end
+    WASM["DxfBlazorViewer :8122<br/>(WASM 정적 파일)"]
+  end
+  subgraph WSL["WSL Docker"]
+    NGX["ftms-nginx :80"]
+    DB[("ftms-db<br/>PostgreSQL 17 + TimescaleDB<br/>authdb / ftmsdb")]
+  end
+  BR["브라우저<br/>Viewer / Monitoring / Alarm …"]
+  DOCK -- "STX JSON ETX" --> TCP --> HND
+  HND -- heartbeat --> SM --> EDS
+  HND -- heartbeat --> DSM --> DB
+  HND -- process_count --> DCS --> DB
+  DCS --> SM
+  API --> SM
+  API --> DB
+  DCS -. 처리결과 .-> HUB
+  BR -- "localhost:80" --> NGX
+  NGX -- "/api /chathub /health" --> API
+  NGX -- "/chathub (WebSocket)" --> HUB
+  NGX -- "그 외" --> WASM

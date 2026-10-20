@@ -1,0 +1,27 @@
+sequenceDiagram
+  autonumber
+  participant D as 도크
+  participant J as JsonMessagedHandler
+  participant CH as DataCollectorChannel
+  participant DC as DataCollectorService
+  participant SM as StateManager
+  participant DB as ftmsdb
+  participant HUB as ChatHub
+  D->>J: {"type":"process_count",<br/>ProcessCounts[이번, 누적]}
+  J->>CH: WriteAsync(json) → OK 응답
+  CH->>DC: ReadAllAsync (단일 소비자)
+  DC->>DC: 보정 (빈값 "-",<br/>DockId←ClientId/RawData)
+  par 실시간 누적 (1초)
+    DC->>SM: RemoveTimeoutProcessCountsAsync
+    DC->>SM: AccumProcessCountFromClientAsync<br/>(최근 5분 슬라이딩)
+  and 원본 적재 (1초 / 2만건)
+    DC->>DB: Flush → collected_payload<br/>(CSV 텍스트)
+  and 원본 처리 (연속)
+    DC->>DB: process_collected_payload_v4()
+    DB-->>DC: Loaded/Deduped/Inserted/Updated
+    DC->>HUB: CollectedCountReceived
+  and 집계 (1초)
+    DC->>DB: process_counts_aggregate_all(20000)
+    DB->>DB: 분/시/일/일(KST) 누적 테이블
+  end
+  Note over DC,DB: 집계 루프는 try/catch 없음<br/>→ DB 오류 1회로 정지 (B6)

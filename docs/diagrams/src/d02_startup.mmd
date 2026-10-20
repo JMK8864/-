@@ -1,0 +1,22 @@
+sequenceDiagram
+  autonumber
+  participant P as Program.cs
+  participant CH as ConfigurationHelper<br/>(확장 메서드)
+  participant DB as PostgreSQL
+  participant HS as HostedServices
+  participant K as Kestrel :8121
+  P->>P: CreateBuilder ·<br/>InitializeLogger(Serilog)
+  P->>CH: builder.AddDbContextDetails()<br/>/ AddIdentityServices()
+  P->>CH: AddTcpServerServiceAndManager()<br/>/ AddMyOwnBusinessLogicServices()
+  P->>P: app = builder.Build()
+  P->>CH: await<br/>app.BuildDatabaseAsync()
+  CH->>DB: EnsureCreated(authdb,<br/>ftmsdb)
+  CH->>DB: Role 7개 · 기본 계정 시드
+  Note over CH,DB: DB 연결 실패 시 여기서 멈춤<br/>→ 8121 미개방 (B12)
+  P->>CH: await<br/>app.WriteDefaultToDbAsync()
+  CH->>DB: .default.settings →<br/>settings / ftms_event_list
+  P->>P: MapDefineCommands ·<br/>MapControllers · MapHub
+  P->>HS: app.Run() → 각<br/>StartAsync 순차 실행
+  HS->>DB: StateManager 복원 · Collector<br/>테이블/함수 · 이벤트 마스터 캐시
+  HS-->>K: 모두 끝난 뒤 시작
+  K-->>P: Now listening on<br/>http://0.0.0.0:8121

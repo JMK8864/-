@@ -1,0 +1,28 @@
+sequenceDiagram
+  autonumber
+  participant C as 도크 클라이언트 (n개)
+  participant L as ListenOnPortAsync
+  participant CM as TcpServerConnectionManager
+  participant S as HandleClientSessionAsync
+  participant F as FillPipeAsync
+  participant R as ReadPipeAsync + ProtocolParser
+  participant H as ITcpMessageHandler
+  C->>L: TCP 연결 (127.0.0.1:53412<br/>→ :6004)
+  L->>CM: AddClient("127.0.0.1:53412")
+  L-)S: 세션 Task 시작 (await 하지 않음)
+  L->>L: 즉시 다음<br/>AcceptTcpClientAsync
+  par 연결마다 독립
+    loop 수신
+      C->>F: 바이트
+      F->>F: stream.ReadAsync →<br/>Pipe.Writer (타임아웃 시각 갱신)
+    end
+  and
+    loop 해석
+      R->>R: STX … ETX 완성 메시지만 추출
+      R->>H: Priority 순 CanHandle<br/>→ HandleAsync
+      H-->>CM: SendToClientAsync(clientId,<br/>응답)
+      CM-->>C: 응답
+    end
+  end
+  Note over L,CM: 5초마다 무수신 10초 초과 연결 Dispose<br/>(CheckClientTimeoutsAsync)
+  S-->>CM: 종료 시 RemoveClient<br/>(ContinueWith)

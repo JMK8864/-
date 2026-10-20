@@ -1,0 +1,22 @@
+sequenceDiagram
+  autonumber
+  participant U as Index.razor
+  participant LM as LoginManager
+  participant RA as RealAuthService
+  participant N as nginx
+  participant A as AuthController
+  participant I as Identity (authdb)
+  U->>LM: LoginAsync(id,<br/>pw) (제한 15초)
+  LM->>RA: LoginAsync
+  RA->>N: POST /api/auth/login<br/>(쿠키 포함)
+  alt app-server 기동 전 (8121 미개방)
+    N-->>RA: 502 Bad Gateway
+    RA-->>U: "Login failed"
+  else 정상
+    N->>A: 전달
+    A->>I: 사용자 · 비밀번호 확인
+    A-->>RA: Access JWT(15분) + Set-Cookie<br/>Refresh(7일, HttpOnly)
+    RA->>LM: 토큰 디코딩 (이름, 역할, 만료)
+    LM->>LM: 만료 전 자동<br/>/api/auth/refresh 예약
+    LM-->>U: 로그인 성공 → 메뉴 표시 (역할별)
+  end

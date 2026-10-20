@@ -1,0 +1,6 @@
+flowchart LR
+  HB["heartbeat / 누적 상태"] --> MEM["EventDataStoreService<br/>_data_in_mem"]
+  MEM -- "FlushAsync 10초<br/>InsertAsync → DockMessageEvents" --> T1[("dock_message_events<br/>(저장됨)")]
+  T2[("event_data_store<br/>(비어 있음)")] -- "RestoreAsync (재시작 시)" --> MEM
+  T2 -- "DeleteOldEventsAsync 60초" --> T2
+  T1 -. "B15: 저장과 복원 테이블이 다름 → 재시작 후 상태 없음" .- T2
