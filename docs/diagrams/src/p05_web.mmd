@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  participant V as Viewer (WASM)
+  participant N as nginx :80
+  participant S as app-server :8121
+  V->>N: GET /api/dxf (Accept: x-msgpack, If-None-Match)
+  N->>S: 전달
+  S-->>V: MessagePack+LZ4 DxfSceneDto (또는 304)
+  V->>N: POST /chathub/negotiate → WebSocket 전환
+  par 1초마다
+    V->>S: GET /api/Dock/status
+    S-->>V: [nowMs, iso, [[dockId, devices, meta], ...]] (text/plain)
+  and 2초마다
+    V->>S: GET /api/ProcessCount/live/latest-n-minutes
+    S-->>V: ProcessCountL[] (최근 5분 누적)
+  and 1초마다
+    V->>S: POST /api/EventLog/search/fast
+    S-->>V: ApiResponse {data:{logs[], hasNextPage...}}
+  and SignalR 푸시
+    S--)V: Heartbeat (0.5초), ServerStatusReceived, CollectedCountReceived
+  end

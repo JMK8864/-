@@ -1,0 +1,18 @@
+sequenceDiagram
+  autonumber
+  participant U as Settings 화면 (Viewer)
+  participant A as AssetsController /api/setting
+  participant M as StateManager (메모리)
+  participant T as TCP 서버
+  participant E as 도크
+  U->>A: POST /api/setting/json<br/>category=dock.sorting.param, machineId=B22<br/>{"dockId":"B22","paramName":"SET-A",...}
+  A->>A: DB settings 저장
+  A->>M: AssetItemUpdateChannel → 메모리 갱신
+  E->>T: heartbeat (현재 사용 중 paramName)
+  T->>M: B22 지정값 조회 (없으면 Default)
+  T-->>E: heartbeat 응답 setParameter = {"paramName":"SET-A"}
+  Note over E: 사용 중 이름과 다르면<br/>세트 전체 요청 (의도된 동작)
+  E->>T: docksortingparam
+  T->>M: param.set 중 "SET-A" 조회
+  T-->>E: parameterSet = {volume, saturation}
+  Note over A,M: ⚠ DELETE 는 메모리에 반영되지 않음

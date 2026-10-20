@@ -1,0 +1,26 @@
+flowchart LR
+  subgraph A["① 도크 송신 status"]
+    A1["scanner  '01'"]
+    A2["sensor  '010101'"]
+    A3["conveyor  'CS' + 2문자×8<br/>예: 00 01 00 01 …"]
+  end
+  subgraph B["② 서버 정규화"]
+    B1["hex 2글자 → 1바이트<br/>'0001'"]
+    B2["'0001,0001,0001'"]
+    B3["2문자 → c2×256 + c1<br/>하위 8비트 = c1 값<br/>'0000,0000,…'"]
+  end
+  subgraph C["③ /api/Dock/status"]
+    C1["[1]"]
+    C2["[1,1,1]"]
+    C3["[0,0,0,0,0,0,0,0]"]
+  end
+  subgraph D["④ Viewer 판정"]
+    D1["모두 1 → Run<br/>모두 0 → Stop<br/>그 외 → Error"]
+    D2["판독시스템 =<br/>scanner·dim·sensor 종합"]
+    D3["바이트별 0 Stop / 1 Run<br/>M01~M07, 신축 → PLC 종합"]
+  end
+  A1 --> B1 --> C1 --> D1
+  A2 --> B2 --> C2 --> D1
+  D1 --> D2
+  A3 --> B3 --> C3 --> D3
+  B3 -.- N["⚠ 에뮬레이터는 c1 = 0 → 모두 Stop (P2)"]

@@ -1,0 +1,27 @@
+sequenceDiagram
+  autonumber
+  participant E as 에뮬레이터 (B22)
+  participant T as TcpServerFinalService
+  participant H as JsonMessagedHandler
+  participant S as StateManager / DataCollector
+  E->>T: TCP 연결 (127.0.0.1:6004)
+  Note over T: 세션 시작, 식별자 = IP:Port<br/>수신 없음 10초 → 종료 (5초마다 검사)
+  loop 1초마다
+    E->>T: STX {"type":"heartbeat","clientId":"B22",...} ETX
+    T->>H: type = heartbeat
+    H->>S: 상태 정규화·저장, 알람 판정
+    H->>T: 별칭 등록 (IP:Port ↔ B22)
+    T-->>E: STX {"messageId":n,"type":"heartbeat","setParameter":{...}} ETX
+  end
+  loop 초당 약 100건 (전체 연결 합계)
+    E->>T: STX {"type":"processcount","processCounts":[증분, 누적],"rawData":{...}} ETX
+    T->>H: type = processcount
+    H->>S: 채널에 넣음 (DB 처리는 따로)
+    T-->>E: STX {"status":"OK","time":"…+00:00"} ETX
+  end
+  loop 60초마다
+    E->>T: STX {"type":"docksortingparam","clientId":"B22"} ETX
+    T->>S: 지정 파라미터 이름 → 세트 조회
+    T-->>E: STX {"messageId":n,"parameterSet":{...}} ETX
+  end
+  Note over E: 응답은 로그만 남기고 해석하지 않음<br/>60초 무수신 → 재연결 (3초부터 최대 300초)

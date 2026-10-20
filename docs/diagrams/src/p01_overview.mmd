@@ -1,0 +1,34 @@
+flowchart LR
+  subgraph EMU["도크 PC · 에뮬레이터 (emul.console)"]
+    E1["HeartbeatLoop<br/>연결마다 1초"]
+    E2["ProcessCountLoop<br/>전체 초당 100건"]
+    E3["RequestDockSortingParamLoop<br/>연결마다 60초"]
+  end
+  subgraph SRV["app-server.ftms"]
+    T["TcpServerFinalService<br/>:6004  STX·JSON·ETX"]
+    H["JsonMessagedHandler<br/>type 으로 분기"]
+    SM["LogisticsSystemStateManager<br/>(메모리 상태)"]
+    DC["DataCollectorService<br/>(채널 → DB)"]
+    API["REST 컨트롤러<br/>/api/*"]
+    HUB["ChatHub<br/>/chathub"]
+  end
+  DB[("ftms-db<br/>PostgreSQL + TimescaleDB")]
+  NG["nginx :80"]
+  subgraph WEB["브라우저 (DxfBlazorViewer.Client)"]
+    V["Viewer / Monitoring / Alarm …"]
+  end
+  E1 -- "heartbeat" --> T
+  E2 -- "processcount" --> T
+  E3 -- "docksortingparam" --> T
+  T -. "응답 (같은 연결)" .-> EMU
+  T --> H
+  H -- "heartbeat / docksortingparam" --> SM
+  H -- "processcount" --> DC
+  SM --> DB
+  DC --> DB
+  API --> SM
+  API --> DB
+  V -- "HTTP 폴링 1~2초" --> NG
+  V <-- "WebSocket" --> NG
+  NG -- "/api" --> API
+  NG -- "/chathub" --> HUB
