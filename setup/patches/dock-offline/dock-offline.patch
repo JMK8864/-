@@ -1,16 +1,16 @@
 diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razor.cs mod/servers/ftms/DxfBlazorViewer/Pages/Viewer.razor.cs
 --- orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razor.cs	2026-10-20 01:32:51.541472457 +0000
-+++ mod/servers/ftms/DxfBlazorViewer/Pages/Viewer.razor.cs	2026-10-20 01:34:42.363869289 +0000
-@@ -916,12 +916,62 @@
++++ mod/servers/ftms/DxfBlazorViewer/Pages/Viewer.razor.cs	2026-10-20 04:04:52.132727507 +0000
+@@ -916,12 +916,67 @@
          }
  
  
 +        // [도크 끊김 판정 - 원인 3] 서버 수신 시각이 이 시간보다 오래되면 통신 끊김으로 표시
-+        //   서버 TCP 무수신 타임아웃(TcpServerFinal:TimeoutSeconds = 10초)과 맞춤
-+        private const long DockStaleMs = 10_000;
++        //   기본값. 서버가 응답 root[3] 으로 TcpServerFinal:TimeoutSeconds 값을 보내면 그 값을 사용
++        private const long DefaultDockStaleMs = 10_000;
 +
 +        // dockEl = ["B22", [장치들], 파라미터, 서버수신시각(ms), 연결여부]
-+        private static bool IsDockOffline(JsonElement dockEl, long serverNowMs)
++        private static bool IsDockOffline(JsonElement dockEl, long serverNowMs, long staleMs)
 +        {
 +            // [4] 연결 여부: 서버가 TCP 끊김을 감지했으면 false → 즉시 끊김
 +            if (TryGetArrayItem(dockEl, 4, out var connEl) && connEl.ValueKind == JsonValueKind.False)
@@ -34,7 +34,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razo
 +            }
 +
 +            // 시각 정보가 전혀 없으면 판단 불가 → 끊김으로 표시
-+            return lastMs == 0 || (serverNowMs - lastMs) > DockStaleMs;
++            return lastMs == 0 || (serverNowMs - lastMs) > staleMs;
 +        }
 +
 +        private void MarkDockOffline(string dockId, IEnumerable<string> convKeys)
@@ -58,20 +58,25 @@ diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razo
 +                ? nowMs
 +                : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 +
++            // [도크 끊김 판정] root[3] = 서버가 보낸 끊김 판정 시간(ms) = TcpServerFinal:TimeoutSeconds × 1000
++            long staleMs = (TryGetArrayItem(root, 3, out var staleEl) && staleEl.ValueKind == JsonValueKind.Number && staleEl.TryGetInt64(out var sm) && sm > 0)
++                ? sm
++                : DefaultDockStaleMs;
++
 +            // [도크 끊김 판정 - 원인 3] 이번 응답에 들어 있는 도크 목록 (응답에서 빠진 도크 처리용)
 +            var seenDocks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 +
              // conveyor 순서: [M01..M07, 신축]
              string[] convKeys =
              {
-@@ -939,6 +989,14 @@
+@@ -939,6 +994,14 @@
                  if (string.IsNullOrWhiteSpace(dockIdRaw)) continue;
  
                  var dockId = DockLabelNormalization.CanonLabel(dockIdRaw);
 +                seenDocks.Add(dockId);
 +
 +                // [도크 끊김 판정 - 원인 3] 끊긴 도크는 마지막 상태 대신 Offline 으로 표시하고 다음 도크로
-+                if (IsDockOffline(dockEl, serverNowMs))
++                if (IsDockOffline(dockEl, serverNowMs, staleMs))
 +                {
 +                    MarkDockOffline(dockId, convKeys);
 +                    continue;
@@ -79,7 +84,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razo
  
                  // devices: [scanner, dimensioner, sensor, conveyor]
                  if (!TryGetArrayItem(dockEl, 1, out var devicesEl) || devicesEl.ValueKind != JsonValueKind.Array) continue;
-@@ -1037,6 +1095,13 @@
+@@ -1037,6 +1100,13 @@
                      }
                  }
              }
@@ -93,7 +98,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razo
          }
  
  
-@@ -2811,7 +2876,8 @@
+@@ -2811,7 +2881,8 @@
              _canvas?.Invalidate();
          }
  
@@ -103,7 +108,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razo
          private enum DockDiagramView { Full, ConnectionsOnly } // (유지해도 되고, ConnectionsOnly만 써도 됨)
  
          private sealed class DockDiagramModel
-@@ -2931,6 +2997,7 @@
+@@ -2931,6 +3002,7 @@
                  ElementState.Run => new SKColor(0x1B, 0xC8, 0x73),       // green
                  ElementState.Error => new SKColor(0xFF, 0xD2, 0x00),     // yellow
                  ElementState.Emergency => new SKColor(0xFF, 0x2A, 0x2A), // red
@@ -111,7 +116,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razo
                  _ => new SKColor(0xD8, 0xD8, 0xD8),                      // stop (light gray)
              };
  
-@@ -3483,7 +3550,7 @@
+@@ -3483,7 +3555,7 @@
  
              private static SKColor PlcPanelFill(ElementState st) => st switch
              {
@@ -120,7 +125,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razo
                  _ => new SKColor(0x1B, 0xC8, 0x73)
              };
  
-@@ -3541,6 +3608,7 @@
+@@ -3541,6 +3613,7 @@
                      ElementState.Run => StateFill(st),
                      ElementState.Error => StateFill(st),
                      ElementState.Emergency => StateFill(st),
@@ -128,10 +133,58 @@ diff -ru --strip-trailing-cr orig/servers/ftms/DxfBlazorViewer/Pages/Viewer.razo
                      _ => new SKColor(0xF2, 0xF2, 0xF2)
                  };
  
+diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/.default.settings/ftms_event_list.tsv mod/servers/ftms/app-server.ftms/.default.settings/ftms_event_list.tsv
+--- orig/servers/ftms/app-server.ftms/.default.settings/ftms_event_list.tsv	2026-10-20 04:05:24.980705911 +0000
++++ mod/servers/ftms/app-server.ftms/.default.settings/ftms_event_list.tsv	2026-10-20 04:05:25.006245646 +0000
+@@ -25,6 +25,8 @@
+ E0000.0040	Warning	System	8192	CpuHigh	CPU 사용률 과다	TRUE
+ E0000.0041	Warning	System	16384	MemoryLow	메모리 부족	TRUE
+ E0000.0042	Warning	System	32768	DiskLow	디스크 여유 부족	TRUE
++E0000.0050	Warning	System	65536	DockDisconnected	도크 통신 끊김 (TCP 연결 종료)	TRUE
++E0000.0051	Info	System	131072	DockReconnected	도크 통신 복구 (heartbeat 재수신)	TRUE
+ E0010.0000	Info	Conveyor	0	Stopped	컨베이어 모터 정지	TRUE
+ E0010.0001	Info	Conveyor	1	Normal	컨베이어 정상 가동	TRUE
+ E0010.0002	Error	Conveyor	2	EocrError	모터 과부하 차단(EOCR) 에러	TRUE
+diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/Controllers/DockController.cs mod/servers/ftms/app-server.ftms/Controllers/DockController.cs
+--- orig/servers/ftms/app-server.ftms/Controllers/DockController.cs	2026-10-20 04:03:49.923337323 +0000
++++ mod/servers/ftms/app-server.ftms/Controllers/DockController.cs	2026-10-20 04:04:52.120618749 +0000
+@@ -1,4 +1,5 @@
+ using ftms.app.Managers;
++using ftms.app.TcpMessageHandlers;
+ using ftms.shared.Model.Messages;
+ using Microsoft.AspNetCore.Mvc;
+ 
+@@ -10,9 +11,16 @@
+     {
+         private readonly LogisticsSystemStateManager _systemStatusManager;
+ 
+-        public DockController(LogisticsSystemStateManager systemStatusManager)
++        // [도크 끊김 판정] 화면에 전달할 끊김 판정 시간(ms) = 서버 TCP 무수신 타임아웃
++        private readonly long? _dockStaleMs;
++
++        public DockController(LogisticsSystemStateManager systemStatusManager, IConfiguration configuration)
+         {
+             _systemStatusManager = systemStatusManager;
++
++            // TcpServerFinalService 와 같은 방법으로 읽음 (섹션이 없으면 TcpServerConfig 기본값 사용)
++            var tcpConfig = configuration.GetSection(Constants.TcpServerConfig).Get<TcpServerConfig>() ?? new TcpServerConfig();
++            _dockStaleMs = tcpConfig.TimeoutSeconds > 0 ? tcpConfig.TimeoutSeconds * 1000L : null;  // 0 이하(타임아웃 끔)면 화면 기본값
+         }
+ 
+     //    //  "/api/dock/status"
+@@ -32,7 +40,7 @@
+         public async Task<IActionResult> GetAllStatus([FromQuery] IEnumerable<string>? dockIds, CancellationToken cancellationToken)
+         {
+             var heartBeatStatus = await _systemStatusManager.GetAllStatusAsync(dockIds, cancellationToken);
+-            var json = heartBeatStatus.ToJson();
++            var json = heartBeatStatus.ToJson(_dockStaleMs);
+             return Ok(json);
+         }
+ 
 diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/Managers/LogisticsSystemStateManager.cs mod/servers/ftms/app-server.ftms/Managers/LogisticsSystemStateManager.cs
 --- orig/servers/ftms/app-server.ftms/Managers/LogisticsSystemStateManager.cs	2026-10-20 01:32:51.522490156 +0000
-+++ mod/servers/ftms/app-server.ftms/Managers/LogisticsSystemStateManager.cs	2026-10-20 01:34:42.356044851 +0000
-@@ -625,6 +625,30 @@
++++ mod/servers/ftms/app-server.ftms/Managers/LogisticsSystemStateManager.cs	2026-10-20 04:04:52.121963298 +0000
+@@ -625,6 +625,81 @@
              .OrderBy(v => v.DockId);
      }
  
@@ -139,7 +192,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/Managers/Logistic
 +    /// [도크 끊김 판정 - 원인 2] TCP 연결이 끊긴 도크의 마지막 heartbeat 에 "끊김" 표시를 합니다.
 +    /// 상태 값은 지우지 않고 남겨 두어(마지막 상태 확인용), 화면에서 끊김으로 표시하게 합니다.
 +    /// </summary>
-+    public async Task MarkDockDisconnectedAsync(string dockId, CancellationToken stoppingToken = default)
++    public async Task MarkDockDisconnectedAsync(string dockId, string? endpoint = null, CancellationToken stoppingToken = default)
 +    {
 +        if (string.IsNullOrWhiteSpace(dockId)) return;
 +
@@ -148,9 +201,16 @@ diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/Managers/Logistic
 +            var heartbeats = await _eventDataStoreService.GetAsync<HeartBeatReportMessage>(stoppingToken);
 +            if (heartbeats != null && heartbeats.TryGetValue(dockId, out var obj) && obj is HeartBeatReportMessage hb)
 +            {
++                // 이미 끊김으로 표시된 도크면 이력을 중복으로 남기지 않음
++                if (hb.Connected == false) return;
++
++                var now = DateTimeOffset.UtcNow;
 +                hb.Connected = false;
-+                hb.DisconnectedAt = DateTimeOffset.UtcNow;
++                hb.DisconnectedAt = now;
 +                _logger?.LogInformation("Dock {DockId} marked as disconnected", dockId);
++
++                // [도크 끊김 이력] ftms_event_log 에 "통신 끊김" 기록
++                await WriteDockConnectionEventAsync(dockId, connected: false, occurredAt: now, endpoint: endpoint, lastReceivedAt: hb.ReceivedAt);
 +            }
 +        }
 +        catch (Exception ex)
@@ -159,25 +219,84 @@ diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/Managers/Logistic
 +        }
 +    }
 +
++    // [도크 끊김 이력] ftms_event_list 에 등록한 코드 (setup/db/06_dock_connection_events.sql)
++    private const string EventCodeDockDisconnected = "E0000.0050";
++    private const string EventCodeDockReconnected = "E0000.0051";
++
++    /// <summary>
++    /// [도크 끊김 이력] 도크 통신 끊김/복구를 ftms_event_log(알람 이력)에 기록합니다.
++    /// 알람 화면(/alarms)에서 System 장치 이벤트로 조회됩니다.
++    /// </summary>
++    private async Task WriteDockConnectionEventAsync(string dockId, bool connected, DateTimeOffset occurredAt, string? endpoint, DateTimeOffset? lastReceivedAt)
++    {
++        try
++        {
++            var desc = connected
++                ? $"[{dockId}:System:0] \t도크 통신 복구 (heartbeat 재수신)"
++                : $"[{dockId}:System:0] \t도크 통신 끊김 (TCP 연결 종료)";
++
++            var extra = JsonSerializer.Serialize(new
++            {
++                endpoint,
++                lastReceivedAt = lastReceivedAt?.ToString("o"),
++            });
++
++            await using var db = await _dbFactory.CreateDbContextAsync();
++            db.FtmsEventLog.Add(new FtmsEventLog
++            {
++                OccurredAt = occurredAt,
++                EventCode = connected ? EventCodeDockReconnected : EventCodeDockDisconnected,
++                DeviceId = dockId,
++                DeviceName = dockId,
++                EventLevel = connected ? "Info" : "Warning",
++                DeviceType = "System",
++                EventDesc = desc,
++                ExtraData = extra,
++                IsAcknowledged = false,
++                CreatedAt = DateTimeOffset.UtcNow,
++            });
++            await db.SaveChangesAsync();
++        }
++        catch (Exception ex)
++        {
++            _logger?.LogError(ex, "Failed to write dock connection event for {DockId} (connected={Connected})", dockId, connected);
++        }
++    }
++
      public async Task<IEnumerable<HeartBeatReportMessage>> GetAllStatusAsync(IEnumerable<string>? dockIds = null, CancellationToken stoppingToken = default)
      {
          var heartbeats = await _eventDataStoreService.GetAsync<HeartBeatReportMessage>(stoppingToken);
-@@ -795,6 +819,12 @@
+@@ -795,6 +870,27 @@
  
              var clientId = hbm.ClientId;
              var messageId = hbm.MessageId;
 +
 +            // [도크 끊김 판정 - 원인 1] 서버 기준 수신 시각과 연결 상태를 기록
 +            //   도크 PC 가 보낸 LastSeenAt 은 그 PC 의 시계라 서버와 어긋날 수 있으므로 별도로 남깁니다.
++            // [도크 끊김 이력] 직전 상태가 "끊김"이었으면 이번 heartbeat 는 "통신 복구"
++            var wasDisconnected = false;
++            try
++            {
++                var prevAll = await _eventDataStoreService.GetAsync<HeartBeatReportMessage>(stoppingToken);
++                wasDisconnected = prevAll != null
++                    && prevAll.TryGetValue(clientId, out var prevObj)
++                    && prevObj is HeartBeatReportMessage prev
++                    && prev.Connected == false;
++            }
++            catch (Exception) { }
++
 +            hbm.ReceivedAt = DateTimeOffset.UtcNow;
 +            hbm.Connected = true;
 +            hbm.DisconnectedAt = null;
++
++            if (wasDisconnected)
++                _ = WriteDockConnectionEventAsync(clientId, connected: true, occurredAt: hbm.ReceivedAt.Value, endpoint: null, lastReceivedAt: null);
              
              foreach (var status in hbm?.DeviceStatuses ?? Enumerable.Empty<HeartBeatReportMessage.DeviceStatus>())
              {
 diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/TcpServer/TcpServerFinalService.cs mod/servers/ftms/app-server.ftms/TcpServer/TcpServerFinalService.cs
 --- orig/servers/ftms/app-server.ftms/TcpServer/TcpServerFinalService.cs	2026-10-20 01:32:51.531917719 +0000
-+++ mod/servers/ftms/app-server.ftms/TcpServer/TcpServerFinalService.cs	2026-10-20 01:34:42.357269846 +0000
++++ mod/servers/ftms/app-server.ftms/TcpServer/TcpServerFinalService.cs	2026-10-20 04:04:52.123722270 +0000
 @@ -7,6 +7,7 @@
  using System.Threading.Channels;
  using SocketConnectionManager;
@@ -225,7 +344,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/TcpServer/TcpServ
 +                        if (!string.IsNullOrWhiteSpace(dockId) && !IsDockConnected(dockId))
 +                        {
 +                            Logger.LogWarning("{Header} Dock {DockId} disconnected ({ClientId})", LogHeader, dockId, clientId);
-+                            _ = _stateManager.MarkDockDisconnectedAsync(dockId, CancellationToken.None);
++                            _ = _stateManager.MarkDockDisconnectedAsync(dockId, clientId, CancellationToken.None);
 +                        }
 +
                          // ✅ [수정] 태스크 완료 로그 헤더 추가
@@ -264,7 +383,7 @@ diff -ru --strip-trailing-cr orig/servers/ftms/app-server.ftms/TcpServer/TcpServ
          while (!stoppingToken.IsCancellationRequested)
 diff -ru --strip-trailing-cr orig/servers/ftms/app-shared.ftms/Models/Messages/HeartBeatReportMessage.cs mod/servers/ftms/app-shared.ftms/Models/Messages/HeartBeatReportMessage.cs
 --- orig/servers/ftms/app-shared.ftms/Models/Messages/HeartBeatReportMessage.cs	2026-10-20 01:32:51.513292221 +0000
-+++ mod/servers/ftms/app-shared.ftms/Models/Messages/HeartBeatReportMessage.cs	2026-10-20 01:34:42.355166475 +0000
++++ mod/servers/ftms/app-shared.ftms/Models/Messages/HeartBeatReportMessage.cs	2026-10-20 04:04:52.119833555 +0000
 @@ -24,6 +24,15 @@
      public required IReadOnlyCollection<DeviceStatus> DeviceStatuses { get; init; }
  
@@ -281,7 +400,30 @@ diff -ru --strip-trailing-cr orig/servers/ftms/app-shared.ftms/Models/Messages/H
  }
  
  public class HeartBeatResponse : TcpMessageResponseBase
-@@ -86,12 +95,15 @@
+@@ -34,16 +43,18 @@
+ 
+ public static class HeartBeatSerializer
+ {
+-    public static string ToJson(this IEnumerable<HeartBeatReportMessage> reports)
++    // staleMs: [도크 끊김 판정] 화면이 "통신 끊김"으로 볼 무수신 시간(ms). 서버 TcpServerFinal:TimeoutSeconds 에서 전달
++    public static string ToJson(this IEnumerable<HeartBeatReportMessage> reports, long? staleMs = null)
+     {
+         var now = DateTimeOffset.UtcNow;
+ 
+-        // 1. 루트 배열 생성 [공통시간, ISO시간, 도크배열]
+-        var rootArray = new List<object>
++        // 1. 루트 배열 생성 [공통시간, ISO시간, 도크배열, 끊김판정시간]
++        var rootArray = new List<object?>
+         {
+             now.ToUnixTimeMilliseconds(),   // [0] 공통 Timestamp
+             now.ToString("o"),              // [1] ISO 8601 형식 시간
+-            SerializeDocks(reports)         // [2] 도크 데이터 리스트
++            SerializeDocks(reports),        // [2] 도크 데이터 리스트
++            staleMs,                        // [3] 끊김 판정 시간(ms), 없으면 null → 화면 기본값
+         };
+ 
+         return JsonSerializer.Serialize(rootArray);
+@@ -86,12 +97,15 @@
                  ? new object[] { report.DockSortingParam.DockId, report.DockSortingParam.ParamName, report.DockSortingParam.UpdatedAt.ToUnixTimeMilliseconds() }
                  : null;
  

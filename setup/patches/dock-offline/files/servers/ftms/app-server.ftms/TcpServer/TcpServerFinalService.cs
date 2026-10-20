@@ -135,7 +135,7 @@ public class TcpServerFinalService : TcpServerServiceBase<TcpServerConfig>
                         if (!string.IsNullOrWhiteSpace(dockId) && !IsDockConnected(dockId))
                         {
                             Logger.LogWarning("{Header} Dock {DockId} disconnected ({ClientId})", LogHeader, dockId, clientId);
-                            _ = _stateManager.MarkDockDisconnectedAsync(dockId, CancellationToken.None);
+                            _ = _stateManager.MarkDockDisconnectedAsync(dockId, clientId, CancellationToken.None);
                         }
 
                         // ✅ [수정] 태스크 완료 로그 헤더 추가

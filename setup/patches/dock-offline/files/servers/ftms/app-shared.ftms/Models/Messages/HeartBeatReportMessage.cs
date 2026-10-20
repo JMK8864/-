@@ -43,16 +43,18 @@ public class HeartBeatResponse : TcpMessageResponseBase
 
 public static class HeartBeatSerializer
 {
-    public static string ToJson(this IEnumerable<HeartBeatReportMessage> reports)
+    // staleMs: [도크 끊김 판정] 화면이 "통신 끊김"으로 볼 무수신 시간(ms). 서버 TcpServerFinal:TimeoutSeconds 에서 전달
+    public static string ToJson(this IEnumerable<HeartBeatReportMessage> reports, long? staleMs = null)
     {
         var now = DateTimeOffset.UtcNow;
 
-        // 1. 루트 배열 생성 [공통시간, ISO시간, 도크배열]
-        var rootArray = new List<object>
+        // 1. 루트 배열 생성 [공통시간, ISO시간, 도크배열, 끊김판정시간]
+        var rootArray = new List<object?>
         {
             now.ToUnixTimeMilliseconds(),   // [0] 공통 Timestamp
             now.ToString("o"),              // [1] ISO 8601 형식 시간
-            SerializeDocks(reports)         // [2] 도크 데이터 리스트
+            SerializeDocks(reports),        // [2] 도크 데이터 리스트
+            staleMs,                        // [3] 끊김 판정 시간(ms), 없으면 null → 화면 기본값
         };
 
         return JsonSerializer.Serialize(rootArray);

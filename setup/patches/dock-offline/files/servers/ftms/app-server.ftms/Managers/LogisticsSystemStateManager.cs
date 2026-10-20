@@ -629,7 +629,7 @@ public class LogisticsSystemStateManager : BackgroundService
     /// [도크 끊김 판정 - 원인 2] TCP 연결이 끊긴 도크의 마지막 heartbeat 에 "끊김" 표시를 합니다.
     /// 상태 값은 지우지 않고 남겨 두어(마지막 상태 확인용), 화면에서 끊김으로 표시하게 합니다.
     /// </summary>
-    public async Task MarkDockDisconnectedAsync(string dockId, CancellationToken stoppingToken = default)
+    public async Task MarkDockDisconnectedAsync(string dockId, string? endpoint = null, CancellationToken stoppingToken = default)
     {
         if (string.IsNullOrWhiteSpace(dockId)) return;
 
@@ -638,14 +638,65 @@ public class LogisticsSystemStateManager : BackgroundService
             var heartbeats = await _eventDataStoreService.GetAsync<HeartBeatReportMessage>(stoppingToken);
             if (heartbeats != null && heartbeats.TryGetValue(dockId, out var obj) && obj is HeartBeatReportMessage hb)
             {
+                // 이미 끊김으로 표시된 도크면 이력을 중복으로 남기지 않음
+                if (hb.Connected == false) return;
+
+                var now = DateTimeOffset.UtcNow;
                 hb.Connected = false;
-                hb.DisconnectedAt = DateTimeOffset.UtcNow;
+                hb.DisconnectedAt = now;
                 _logger?.LogInformation("Dock {DockId} marked as disconnected", dockId);
+
+                // [도크 끊김 이력] ftms_event_log 에 "통신 끊김" 기록
+                await WriteDockConnectionEventAsync(dockId, connected: false, occurredAt: now, endpoint: endpoint, lastReceivedAt: hb.ReceivedAt);
             }
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to mark dock {DockId} as disconnected", dockId);
+        }
+    }
+
+    // [도크 끊김 이력] ftms_event_list 에 등록한 코드 (setup/db/06_dock_connection_events.sql)
+    private const string EventCodeDockDisconnected = "E0000.0050";
+    private const string EventCodeDockReconnected = "E0000.0051";
+
+    /// <summary>
+    /// [도크 끊김 이력] 도크 통신 끊김/복구를 ftms_event_log(알람 이력)에 기록합니다.
+    /// 알람 화면(/alarms)에서 System 장치 이벤트로 조회됩니다.
+    /// </summary>
+    private async Task WriteDockConnectionEventAsync(string dockId, bool connected, DateTimeOffset occurredAt, string? endpoint, DateTimeOffset? lastReceivedAt)
+    {
+        try
+        {
+            var desc = connected
+                ? $"[{dockId}:System:0] \t도크 통신 복구 (heartbeat 재수신)"
+                : $"[{dockId}:System:0] \t도크 통신 끊김 (TCP 연결 종료)";
+
+            var extra = JsonSerializer.Serialize(new
+            {
+                endpoint,
+                lastReceivedAt = lastReceivedAt?.ToString("o"),
+            });
+
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            db.FtmsEventLog.Add(new FtmsEventLog
+            {
+                OccurredAt = occurredAt,
+                EventCode = connected ? EventCodeDockReconnected : EventCodeDockDisconnected,
+                DeviceId = dockId,
+                DeviceName = dockId,
+                EventLevel = connected ? "Info" : "Warning",
+                DeviceType = "System",
+                EventDesc = desc,
+                ExtraData = extra,
+                IsAcknowledged = false,
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to write dock connection event for {DockId} (connected={Connected})", dockId, connected);
         }
     }
 
@@ -822,9 +873,24 @@ public class LogisticsSystemStateManager : BackgroundService
 
             // [도크 끊김 판정 - 원인 1] 서버 기준 수신 시각과 연결 상태를 기록
             //   도크 PC 가 보낸 LastSeenAt 은 그 PC 의 시계라 서버와 어긋날 수 있으므로 별도로 남깁니다.
+            // [도크 끊김 이력] 직전 상태가 "끊김"이었으면 이번 heartbeat 는 "통신 복구"
+            var wasDisconnected = false;
+            try
+            {
+                var prevAll = await _eventDataStoreService.GetAsync<HeartBeatReportMessage>(stoppingToken);
+                wasDisconnected = prevAll != null
+                    && prevAll.TryGetValue(clientId, out var prevObj)
+                    && prevObj is HeartBeatReportMessage prev
+                    && prev.Connected == false;
+            }
+            catch (Exception) { }
+
             hbm.ReceivedAt = DateTimeOffset.UtcNow;
             hbm.Connected = true;
             hbm.DisconnectedAt = null;
+
+            if (wasDisconnected)
+                _ = WriteDockConnectionEventAsync(clientId, connected: true, occurredAt: hbm.ReceivedAt.Value, endpoint: null, lastReceivedAt: null);
             
             foreach (var status in hbm?.DeviceStatuses ?? Enumerable.Empty<HeartBeatReportMessage.DeviceStatus>())
             {

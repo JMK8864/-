@@ -16,6 +16,8 @@
 | `nginx/default.conf` | 12-4 | WSL `~/ftms-nginx/default.conf` — **미러 모드**용 (127.0.0.1, listen 80) |
 | `nginx/default.nat.conf` | 부록 A | WSL `~/ftms-nginx/default.conf` — NAT 모드용 (winhost) |
 | `db/05_clear_test_data.sql` | 14-3 | 테스트 데이터 삭제 (테스트 환경 전용) |
+| `db/06_dock_connection_events.sql` | 패치 | 도크 끊김/복구 이벤트 코드 등록 (`patches/dock-offline`) |
+| `patches/dock-offline/` | 패치 | 도크 통신 끊김 표시·이력 수정 (보고서 B17) |
 
 ## 컨테이너
 

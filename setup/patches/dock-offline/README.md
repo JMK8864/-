@@ -1,14 +1,15 @@
-# 도크 통신 끊김 표시 수정 (보고서 B17)
+# 도크 통신 끊김 표시 + 끊김 이력 (보고서 B17)
 
-에뮬레이터/도크가 끊겨도 화면이 마지막 상태를 계속 표시하던 문제 수정.
-적용 순서와 이유: 대화의 1~5단계 안내 참고. 원본 zip 기준으로 작성, **컴파일 미검증**(이 환경에 .NET SDK 없음).
+원본 zip 기준 작성, **컴파일 미검증**(이 환경에 .NET SDK 없음). 사용자 PC 소스가 원본과 다를 수 있으므로 `files/` 는 비교용.
 
-| 단계 | 파일 | 내용 |
-|---|---|---|
-| 1 | `servers/ftms/app-shared.ftms/Models/Messages/HeartBeatReportMessage.cs` | `ReceivedAt`, `Connected`, `DisconnectedAt` 추가, `ToJson` 도크 배열에 `[3]` 수신시각, `[4]` 연결여부 추가 |
-| 2 | `servers/ftms/app-server.ftms/Managers/LogisticsSystemStateManager.cs` | 수신 시 서버 시각·Connected=true 기록, `MarkDockDisconnectedAsync` 추가 |
-| 3 | `servers/ftms/app-server.ftms/TcpServer/TcpServerFinalService.cs` | 연결 종료 시 DockId 찾아 끊김 표시 |
-| 4 | `servers/ftms/DxfBlazorViewer/Pages/Viewer.razor.cs` | `ElementState.Offline`(진회색), 끊김/10초 무수신/응답 누락 도크를 Offline 표시 |
+| 파일 | 내용 |
+|---|---|
+| `app-shared.ftms/Models/Messages/HeartBeatReportMessage.cs` | `ReceivedAt`·`Connected`·`DisconnectedAt` 추가. `ToJson(staleMs)` → root `[3]` 끊김 판정 시간, 도크 배열 `[3]` 수신시각·`[4]` 연결여부 |
+| `app-server.ftms/Controllers/DockController.cs` | `TcpServerFinal:TimeoutSeconds` × 1000 을 `ToJson` 에 전달 |
+| `app-server.ftms/Managers/LogisticsSystemStateManager.cs` | 수신 시 서버 시각·Connected 기록, 끊김→복구 감지, `MarkDockDisconnectedAsync`, `ftms_event_log` 기록(`E0000.0050` 끊김 / `E0000.0051` 복구) |
+| `app-server.ftms/TcpServer/TcpServerFinalService.cs` | 연결 종료 시 DockId·endpoint 로 끊김 표시 |
+| `DxfBlazorViewer/Pages/Viewer.razor.cs` | `ElementState.Offline`(진회색), 서버가 보낸 판정 시간으로 끊김/무수신/응답 누락 도크 표시 |
+| `app-server.ftms/.default.settings/ftms_event_list.tsv` | 신규 설치용 이벤트 코드 2줄 추가 |
+| `../../db/06_dock_connection_events.sql` | 기존 DB 의 `ftms_event_list` 에 이벤트 코드 2개 등록 |
 
-- `dock-offline.patch` : 원본 대비 diff (참고용, 줄바꿈 CRLF 차이로 `git apply` 가 안 될 수 있음 → 직접 반영 권장)
-- `files/` : 원본에 수정만 반영한 전체 파일 (사용자 PC 소스가 원본과 다르면 덮어쓰지 말고 비교용으로 사용)
+- `dock-offline.patch` : 원본 대비 diff (CRLF 차이로 `git apply` 가 안 될 수 있음 → 직접 반영 권장)

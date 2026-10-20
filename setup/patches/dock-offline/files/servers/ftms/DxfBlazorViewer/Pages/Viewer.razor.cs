@@ -917,11 +917,11 @@ namespace DxfBlazorViewer.Client.Pages
 
 
         // [도크 끊김 판정 - 원인 3] 서버 수신 시각이 이 시간보다 오래되면 통신 끊김으로 표시
-        //   서버 TCP 무수신 타임아웃(TcpServerFinal:TimeoutSeconds = 10초)과 맞춤
-        private const long DockStaleMs = 10_000;
+        //   기본값. 서버가 응답 root[3] 으로 TcpServerFinal:TimeoutSeconds 값을 보내면 그 값을 사용
+        private const long DefaultDockStaleMs = 10_000;
 
         // dockEl = ["B22", [장치들], 파라미터, 서버수신시각(ms), 연결여부]
-        private static bool IsDockOffline(JsonElement dockEl, long serverNowMs)
+        private static bool IsDockOffline(JsonElement dockEl, long serverNowMs, long staleMs)
         {
             // [4] 연결 여부: 서버가 TCP 끊김을 감지했으면 false → 즉시 끊김
             if (TryGetArrayItem(dockEl, 4, out var connEl) && connEl.ValueKind == JsonValueKind.False)
@@ -945,7 +945,7 @@ namespace DxfBlazorViewer.Client.Pages
             }
 
             // 시각 정보가 전혀 없으면 판단 불가 → 끊김으로 표시
-            return lastMs == 0 || (serverNowMs - lastMs) > DockStaleMs;
+            return lastMs == 0 || (serverNowMs - lastMs) > staleMs;
         }
 
         private void MarkDockOffline(string dockId, IEnumerable<string> convKeys)
@@ -968,6 +968,11 @@ namespace DxfBlazorViewer.Client.Pages
             long serverNowMs = (TryGetArrayItem(root, 0, out var nowEl) && nowEl.ValueKind == JsonValueKind.Number && nowEl.TryGetInt64(out var nowMs))
                 ? nowMs
                 : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            // [도크 끊김 판정] root[3] = 서버가 보낸 끊김 판정 시간(ms) = TcpServerFinal:TimeoutSeconds × 1000
+            long staleMs = (TryGetArrayItem(root, 3, out var staleEl) && staleEl.ValueKind == JsonValueKind.Number && staleEl.TryGetInt64(out var sm) && sm > 0)
+                ? sm
+                : DefaultDockStaleMs;
 
             // [도크 끊김 판정 - 원인 3] 이번 응답에 들어 있는 도크 목록 (응답에서 빠진 도크 처리용)
             var seenDocks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -992,7 +997,7 @@ namespace DxfBlazorViewer.Client.Pages
                 seenDocks.Add(dockId);
 
                 // [도크 끊김 판정 - 원인 3] 끊긴 도크는 마지막 상태 대신 Offline 으로 표시하고 다음 도크로
-                if (IsDockOffline(dockEl, serverNowMs))
+                if (IsDockOffline(dockEl, serverNowMs, staleMs))
                 {
                     MarkDockOffline(dockId, convKeys);
                     continue;

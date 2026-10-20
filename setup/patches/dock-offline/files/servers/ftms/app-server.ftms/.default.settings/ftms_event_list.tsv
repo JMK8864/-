@@ -1,0 +1,55 @@
+# event_code: 고유 ID (접두어로 심각도 구분: I=Info, E=Error, W=Warning, C=Critical)						
+# event_level: 심각도 (Info, Warning, Error, Critical)						
+# device_type: 장비 유형 (Conveyor, Scanner 등)						
+# sub_code: 원본 SubCode (비트 플래그 값)						
+# event_name: 영문 이름						
+# event_desc: 한글 설명						
+# is_active: 활성화 여부						
+						
+event_code	event_level	device_type	sub_code	event_name	event_desc	is_active
+E9999.FFFF	Critical	System	4294967295	Undefined	모든 시스템 중지 상태 (특수값)	TRUE
+E0000.0000	Info	System	0	Stopped	시스템 가동 중지 상태	TRUE
+E0000.0001	Info	System	1	Normal	시스템 정상 운영 중	TRUE
+E0000.0002	Critical	System	2	EmergencyStop	하드웨어 비상정지(E-Stop) 입력	TRUE
+E0000.0004	Warning	System	4	NetworkSlow	상위 통신 응답 지연 경보	TRUE
+E0000.0010	Info	System	8	Startup	서버 프로세스 시작	TRUE
+E0000.0011	Info	System	16	Shutdown	정상 종료	TRUE
+E0000.0012	Critical	System	32	AbnormalShutdown	비정상 종료(강제 종료/크래시)	TRUE
+E0000.0013	Info	System	64	Restarted	재기동	TRUE
+E0000.0020	Warning	System	128	DataCollectDelay	데이터 수집 지연	TRUE
+E0000.0021	Critical	System	256	DataCollectStopped	데이터 수집 중단	TRUE
+E0000.0022	Info	System	512	DataCollectResumed	수집 재개	TRUE
+E0000.0030	Critical	System	1024	DBDisconnected	DB 연결 끊김	TRUE
+E0000.0031	Warning	System	2048	DBSlowQuery	DB 응답 지연	TRUE
+E0000.0032	Info	System	4096	DBReconnected	DB 재연결	TRUE
+E0000.0040	Warning	System	8192	CpuHigh	CPU 사용률 과다	TRUE
+E0000.0041	Warning	System	16384	MemoryLow	메모리 부족	TRUE
+E0000.0042	Warning	System	32768	DiskLow	디스크 여유 부족	TRUE
+E0000.0050	Warning	System	65536	DockDisconnected	도크 통신 끊김 (TCP 연결 종료)	TRUE
+E0000.0051	Info	System	131072	DockReconnected	도크 통신 복구 (heartbeat 재수신)	TRUE
+E0010.0000	Info	Conveyor	0	Stopped	컨베이어 모터 정지	TRUE
+E0010.0001	Info	Conveyor	1	Normal	컨베이어 정상 가동	TRUE
+E0010.0002	Error	Conveyor	2	EocrError	모터 과부하 차단(EOCR) 에러	TRUE
+E0010.0004	Error	Conveyor	4	InverterError	인버터 고장 및 트립 발생	TRUE
+E0010.0008	Error	Conveyor	8	SensorError	광전 센서 오정렬 및 차폐 오류	TRUE
+E0010.0010	Error	Conveyor	16	EncoderError	엔코더 펄스 미수신 (추적 불가)	TRUE
+E0010.0020	Error	Conveyor	32	Undefined	미정의 장애 상태	TRUE
+E0010.0040	Error	Conveyor	64	WheelSorterError	소터 분기 타임아웃/동작 실패	TRUE
+E0010.0080	Warning	Conveyor	128	Undefined	미정의 장애 상태	TRUE
+E0010.8000	Error	Conveyor	32768	Offline	PLC 통신 하트비트 타임아웃 초과	TRUE
+E0020.0000	Error	ScannerSystem	0	Offline	스캐너 데이터 수집 장치 시스템 오프라인	TRUE
+E0020.0001	Info	ScannerSystem	1	Online	스캐너 데이터 수집 장치 시스템 정상 연결	TRUE
+E0030.0000	Info	Scanner	0	Offline	스캔 시스템 오프라인	TRUE
+E0030.0001	Info	Scanner	1	Ready	스캔 트리거 수신 대기	TRUE
+E0040.0000	Error	Sensor	0	Offline	센서 전원/통신 오프라인	TRUE
+E0040.0001	Info	Sensor	1	Online	센서 정상 연결 점검 완료	TRUE
+E0040.0002	Warning	Sensor	2	SuspiciousStatus	비정상 상태 의심	TRUE
+E0050.0000	Error	Encoder	0	Offline	엔코더 통신 오프라인	TRUE
+E0050.0001	Info	Encoder	1	Online	엔코더 거리 연산 정상	TRUE
+E0050.0002	Warning	Encoder	2	SuspiciousStatus	비정상 상태 의심: 구동축 미끄러짐(Slip) 등	TRUE
+E0060.0000	Error	Dimensioner	0	Offline	체적계 통신 모듈 오프라인	TRUE
+E0060.0001	Info	Dimensioner	1	Online	체적 데이터 수신 정상	TRUE
+E0060.0002	Warning	Dimensioner	2	SuspiciousStatus	체적계 상태 의심: 측정 불가 상태 등	TRUE
+E0070.0000	Error	Weigher	0	Offline	중량계 시리얼/이더넷 오프라인	TRUE
+E0070.0001	Info	Weigher	1	Online	중량 데이터 안정화 상태	TRUE
+E0070.0002	Warning	Weigher	2	ZeroRange	영점 허용 범위 이탈 (영점 조정 필요)	TRUE
