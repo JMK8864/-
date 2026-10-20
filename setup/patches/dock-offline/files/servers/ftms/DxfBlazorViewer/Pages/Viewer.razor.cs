@@ -798,6 +798,7 @@ namespace DxfBlazorViewer.Client.Pages
             new("운전", "#56C873"),
             new("에러", "#FFD200"),
             new("비상", "#FF2A2A"),
+            new("미접속", "#5A5F66"),   // [도크 끊김 판정] ElementState.Offline
         };
 
         // Razor에서 그대로 접근해서 쓰면 됩니다(코드비하인드 private여도 OK)
@@ -1546,7 +1547,11 @@ namespace DxfBlazorViewer.Client.Pages
             // sortDockId: 도식 정렬 기준(요청: DockId가 DOCK1, DOCK2 ... 인 순서)
             var sortDockId = ResolveSortDockIdFromDockKey(dockKey);
 
-            var baseSt = _dockRunStateByDock.TryGetValue(dockKey, out var b) ? b : ElementState.Stop;
+            // [도크 끊김 판정] 서버에서 상태를 한 번도 받지 못한 도크(미접속) → Offline
+            //   (앱 시작 직후 도크가 아직 접속하지 않았거나, 서버가 이전 상태를 복원하지 못한 경우)
+            var hasStatus = _dockRunStateByDock.TryGetValue(dockKey, out var b);
+            var baseSt = hasStatus ? b : ElementState.Offline;
+            var convDefault = hasStatus ? ElementState.Stop : ElementState.Offline;
 
             var station = _dockStationStateByDock.TryGetValue(dockKey, out var s) ? s : baseSt;
             var plc = _dockPlcStateByDock.TryGetValue(dockKey, out var p) ? p : baseSt;
@@ -1563,18 +1568,18 @@ namespace DxfBlazorViewer.Client.Pages
                 DockKey = dockKey,
 
                 // ✅ 명칭 매핑 반영
-                Conv1_MainTop = GetConvState(dockKey, DockConvName.ShinChuk), // "신축"
-                Conv2_MainMid = GetConvState(dockKey, DockConvName.M01),      // "M01"
-                Conv3_MainBot = GetConvState(dockKey, DockConvName.M02),      // "M02"
-                Conv4_CenterDown = GetConvState(dockKey, DockConvName.M03),   // "M03"
+                Conv1_MainTop = GetConvState(dockKey, DockConvName.ShinChuk, convDefault), // "신축"
+                Conv2_MainMid = GetConvState(dockKey, DockConvName.M01, convDefault),      // "M01"
+                Conv3_MainBot = GetConvState(dockKey, DockConvName.M02, convDefault),      // "M02"
+                Conv4_CenterDown = GetConvState(dockKey, DockConvName.M03, convDefault),   // "M03"
 
                 // 오른쪽 가지
-                Conv7_RightDiag = GetConvState(dockKey, DockConvName.M04),    // "M04"
-                Conv8_RightDown = GetConvState(dockKey, DockConvName.M05),    // "M05"
+                Conv7_RightDiag = GetConvState(dockKey, DockConvName.M04, convDefault),    // "M04"
+                Conv8_RightDown = GetConvState(dockKey, DockConvName.M05, convDefault),    // "M05"
 
                 // 왼쪽 가지
-                Conv5_LeftDiag = GetConvState(dockKey, DockConvName.M06),     // "M06"
-                Conv6_LeftDown = GetConvState(dockKey, DockConvName.M07),     // "M07"
+                Conv5_LeftDiag = GetConvState(dockKey, DockConvName.M06, convDefault),     // "M06"
+                Conv6_LeftDown = GetConvState(dockKey, DockConvName.M07, convDefault),     // "M07"
 
                 // 장치들
                 ReadSystem = station,
@@ -3660,7 +3665,8 @@ namespace DxfBlazorViewer.Client.Pages
                 DrawState(c, sx, sy, ElementState.Stop, "정지", k); sx += 90f * k;
                 DrawState(c, sx, sy, ElementState.Run, "운전", k); sx += 90f * k;
                 DrawState(c, sx, sy, ElementState.Error, "에러", k); sx += 90f * k;
-                DrawState(c, sx, sy, ElementState.Emergency, "비상", k);
+                DrawState(c, sx, sy, ElementState.Emergency, "비상", k); sx += 90f * k;
+                DrawState(c, sx, sy, ElementState.Offline, "미접속", k);   // [도크 끊김 판정]
             }
 
             private void DrawLegendStation(SKCanvas c, float x, float y, ElementState st, float k)
