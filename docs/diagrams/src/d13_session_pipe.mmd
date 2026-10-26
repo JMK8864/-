@@ -1,0 +1,32 @@
+sequenceDiagram
+  autonumber
+  participant K as 도크 소켓
+  participant L as ListenOnPortAsync
+  participant S as HandleClientSessionAsync
+  participant F as FillPipe (생산자)
+  participant P as Pipe
+  participant R as ReadPipe (소비자)
+  participant M as ProcessMessage·핸들러
+  K->>L: 접속 (Accept)
+  L->>S: 세션 Task 시작 (await 안 함)
+  L->>L: 바로 다음 AcceptTcpClientAsync
+  S->>P: new Pipe() — 연결 전용
+  S->>F: 시작 (Hot Task)
+  S->>R: 시작 (Hot Task)
+  Note over S: await Task.WhenAll(reading, writing)
+  par 수신
+    K->>F: 바이트 (조각·연속 패킷)
+    F->>F: onResetTimeout()<br/>마지막 수신 시각 갱신
+    F->>P: GetMemory → ReadAsync<br/>→ Advance → FlushAsync
+    Note over F,P: 64KB 넘게 쌓이면 FlushAsync 대기 (배압)
+  and 해석
+    P->>R: ReadAsync — 쌓인 버퍼
+    R->>R: TryParseMessage<br/>STX…ETX 1개씩 분리
+    R->>M: 메시지 1개 (같은 연결 안에서는 순서대로)
+    M-->>K: STX 응답 ETX (SendToClientAsync)
+    R->>P: AdvanceTo(consumed, examined)<br/>남은 조각은 보존
+  end
+  K-->>F: ReadAsync = 0 (끊김)<br/>또는 타임아웃으로 소켓 Dispose
+  F->>P: writer.CompleteAsync()
+  P->>R: IsCompleted → 루프 종료
+  S-->>L: using 으로 소켓 닫음<br/>ContinueWith: 목록 정리

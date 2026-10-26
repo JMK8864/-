@@ -1,0 +1,30 @@
+sequenceDiagram
+  autonumber
+  participant T as TCP 세션 N개
+  participant H as JsonMessagedHandler
+  participant C as Channel (Unbounded)
+  participant D as DataCollector 소비 루프
+  participant Q as 회전 큐·누적 큐
+  participant B as 백그라운드 Task 3개
+  participant DB as ftmsdb
+  T->>H: processcount JSON
+  H->>C: WriteAsync(json) — 즉시 완료
+  H-->>T: {"status":"OK"} (저장 전에 응답)
+  C->>D: await foreach ReadAllAsync
+  D->>D: 파싱·보정<br/>빈 값 "-", dockId 보정
+  D->>Q: 누적 큐 Enqueue
+  D->>Q: 회전 큐[_activeIndex] Enqueue
+  alt 1초 타이머 또는 20,000건 도달
+    D->>Q: Flush — _activeIndex + 1 (큐 교대)
+    Q->>DB: Task.Run 배치 저장 → collected_payload
+  end
+  loop 1초마다
+    B->>Q: 누적 큐 TryDequeue
+    B->>B: StateManager 5분 누적 (화면 live)
+  end
+  loop 계속
+    B->>DB: process_collected_payload_v4()<br/>→ process_counts
+  end
+  loop 1초마다
+    B->>DB: process_counts_aggregate_all()<br/>→ 분/시/일 집계
+  end
