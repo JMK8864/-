@@ -6,11 +6,11 @@
 | [docs/02_SCADA-테스트환경-구축가이드.md](docs/02_SCADA-테스트환경-구축가이드.md) | Windows + VS2026 + WSL Docker(TimescaleDB, nginx) 테스트 환경을 **한 단계씩** 구축 (0~14단계 + 부록) |
 | [docs/03_부록-REST-API.md](docs/03_부록-REST-API.md) | REST 엔드포인트 목록, 화면별 호출 위치, 호출 예 |
 | [docs/04_주요클래스-함수-설명서.md](docs/04_주요클래스-함수-설명서.md) | app-server.ftms / DxfBlazorViewer.Client 주요 클래스·함수 설명, 특징, 주의할 점 |
-| [docs/04_주요클래스-함수-설명서.pdf](docs/04_주요클래스-함수-설명서.pdf) | 위 문서의 PDF 판 (36쪽, 시퀀스·클래스·상태 도식 14종 포함) |
-| [docs/04_주요클래스-함수-발표.pptx](docs/04_주요클래스-함수-발표.pptx) | 발표용 PPT (22장, 도식 + 핵심 요약, 슬라이드 노트 포함) |
+| [docs/04_주요클래스-함수-설명서.pdf](docs/04_주요클래스-함수-설명서.pdf) | 위 문서의 PDF 판 (34쪽, 시퀀스·클래스·상태 도식 15종 포함) |
+| [docs/04_주요클래스-함수-발표.pptx](docs/04_주요클래스-함수-발표.pptx) | 발표용 PPT (23장, 도식 + 핵심 요약, 슬라이드 노트 포함) |
 | [docs/05_데이터포맷-프로토콜-명세서.md](docs/05_데이터포맷-프로토콜-명세서.md) | 에뮬레이터 ↔ app-server(TCP), app-server ↔ Viewer(REST·SignalR) 데이터 포맷·프로토콜, 문제점 P1~P12 |
 | [docs/05_데이터포맷-프로토콜-명세서.pdf](docs/05_데이터포맷-프로토콜-명세서.pdf) | 위 문서의 PDF 판 (20쪽, 도식 5종) |
-| [docs/diagrams/](docs/diagrams/) | 도식 원본 (Mermaid `src/*.mmd`) 과 PNG (`png/`) — d01~d14: 04 설명서, p01~p05: 05 명세서 |
+| [docs/diagrams/](docs/diagrams/) | 도식 원본 (Mermaid `src/*.mmd`) 과 PNG (`png/`) — d01~d15: 04 설명서, p01~p05: 05 명세서 |
 | [setup/](setup/README.md) | 가이드 단계별 SQL, 설정 파일, nginx 설정 |
 
 구성 요약

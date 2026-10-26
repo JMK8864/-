@@ -1,0 +1,36 @@
+flowchart LR
+  subgraph BUILD["① 빌드 시 (패키지 복원)"]
+    CS["app-server.ftms.csproj<br/>PackageReference 8.*"]
+    NU["NuGet Restore<br/>사용자 폴더의<br/>.nuget#92;packages"]
+    CS --> NU
+  end
+  subgraph REG["② 서비스 등록"]
+    CFG["appsettings<br/>ConnectionStrings<br/>DefaultConnection1 / 2<br/>→ AddDbContextDetails()"]
+    ACC["AddDbContext&lt;AccountDbContext&gt;<br/>UseNpgsql(conn1)<br/>UseSnakeCaseNamingConvention"]
+    DAT["AddPooledDbContextFactory&lt;DataDbContext&gt;<br/>UseNpgsql(conn2), poolSize 128<br/>UseSnakeCaseNamingConvention"]
+    CFG --> ACC
+    CFG --> DAT
+  end
+  subgraph USE["③ 사용하는 쪽"]
+    U1["Identity · AuthController<br/>(Scoped 주입)"]
+    U2["StateManager<br/>EventDataStore<br/>DeviceStatusManager<br/>각종 컨트롤러<br/>factory.CreateDbContext()"]
+    U3["DataCollectorService<br/>Repository<br/>ProcessCount·RawData API<br/>new NpgsqlConnection(conn2)"]
+  end
+  INIT["④ BuildDatabaseAsync<br/>EnsureCreated()<br/>= 첫 실제 접속"]
+  POOL["Npgsql 연결 풀<br/>(연결 문자열별)"]
+  subgraph PG["ftms-db 컨테이너 :5432"]
+    A[("authdb<br/>Identity · refresh_tokens")]
+    F[("ftmsdb<br/>settings · process_counts<br/>ftms_event_log · …")]
+  end
+  NU -.-> REG
+  ACC --> U1
+  DAT --> U2
+  CFG --> U3
+  ACC --> INIT
+  DAT --> INIT
+  U1 --> POOL
+  U2 --> POOL
+  U3 --> POOL
+  INIT --> POOL
+  POOL -- "TCP 5432 (127.0.0.1)" --> A
+  POOL --> F
