@@ -1,0 +1,118 @@
+; 장치A (국번1) — MELSEC iQ-R / GX Works3 MAIN 프로그램
+
+; (0) 초기값 설정 (RUN 후 1스캔)
+LD    SM402
+MOV   K1000 D20
+MOV   K500 D21
+
+; (1) 네트워크 상태 인터록 (자국 + 국번2)
+LDI   SB49
+ANI   SW74.1
+OUT   M1
+
+; (2) 운전 준비 완료
+LD    X0
+AND   X3
+ANI   X1
+OUT   M0
+OUT   Y70
+
+; (3) 장치A 운전 시작 (새 사이클)
+LDP   X2
+AND   M0
+ANI   M10
+MOV   K0 D0
+RST   M20
+RST   M11
+RST   B2
+SET   M10
+
+; (4) 이상·준비 해제 시 정지
+LD    X1
+ORI   X0
+RST   M10
+
+; (5) 운전중 출력
+LD    M10
+OUT   Y72
+
+; (6) B0 장치B 운전 준비 지시 송신 (SET)
+LD    M10
+AND   M1
+ANI   B100
+SET   B0
+
+; (7) B0 리셋 (B100 확인 / 정지 / 통신 이상)
+LD    B100
+ORI   M10
+ORI   M1
+RST   B0
+
+; (8) B1 장치B 운전 시작 지시 송신 (SET)
+LD    M10
+AND   M1
+AND   X4
+AND   B100
+ANI   B101
+SET   B1
+
+; (9) B1 리셋 (B101 확인 / 정지 / 통신 이상)
+LD    B101
+ORI   M10
+ORI   M1
+RST   B1
+
+; (10) 장치B 운전 준비 완료 출력
+LD    B100
+AND   M1
+OUT   Y71
+
+; (11) 장치B 운전중 출력
+LD    B101
+AND   M1
+OUT   Y73
+
+; (12) 장치B 목표 생산수 송신
+LD    SM400
+MOV   D21 W0
+
+; (13) 장치A 생산수 카운트-업
+LDP   X5
+AND   M10
+INC   D0
+
+; (14) 장치B 새 사이클 운전 확인 (W100 유효)
+LDP   B101
+AND   M10
+SET   M11
+
+; (15) 총 생산수 = A + B
+LD    M11
++     D0 W100 D10
+
+; (16) 총 생산수 = A (B 미연동)
+LDI   M11
+MOV   D0 D10
+
+; (17) 목표 달성 판정 → 운전 종료, B2 송신
+LD>=  D10 D20
+AND   M10
+SET   M20
+SET   B2
+RST   M10
+
+; (18) B2 ON 시간 확보 (B101 OFF 후 1초)
+LD    B2
+ANI   B101
+OUT   T0 K10
+
+; (19) B2 리셋
+LD    T0
+RST   B2
+
+; (20) 생산수 표시반 출력 (BCD)
+LD    SM400
+BCD   D0 K4Y40
+BCD   W100 K4Y50
+
+END

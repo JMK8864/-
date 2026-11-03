@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 924 90" width="924" height="90" font-family="'Noto Sans KR','Nanum Gothic Coding',sans-serif" role="img" aria-label="렁 3: B100 운전 준비 완료 회신">
+<text x="4" y="15" font-size="12" font-weight="700" fill="#1f2937">(3) B100 운전 준비 완료 회신</text>
+<text x="920" y="15" font-size="10" text-anchor="end" fill="#6b7280">스텝 15</text>
+<line x1="30" y1="26" x2="30" y2="86" stroke="#1f2937" stroke-width="3"/>
+<line x1="914" y1="26" x2="914" y2="86" stroke="#1f2937" stroke-width="3"/>
+<line x1="30" y1="59.0" x2="67.0" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<line x1="85.0" y1="59.0" x2="122" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<line x1="67.0" y1="48.0" x2="67.0" y2="70.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="85.0" y1="48.0" x2="85.0" y2="70.0" stroke="#1f2937" stroke-width="2"/>
+<text x="76.0" y="43.0" font-size="12" text-anchor="middle" fill="#1d4ed8" font-weight="600">M2</text>
+<text x="76.0" y="83.0" font-size="9.5" text-anchor="middle" fill="#047857">운전 준비 지시 수신</text>
+<line x1="122" y1="59.0" x2="159.0" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<line x1="177.0" y1="59.0" x2="214" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<line x1="159.0" y1="48.0" x2="159.0" y2="70.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="177.0" y1="48.0" x2="177.0" y2="70.0" stroke="#1f2937" stroke-width="2"/>
+<text x="168.0" y="43.0" font-size="12" text-anchor="middle" fill="#1d4ed8" font-weight="600">M0</text>
+<text x="168.0" y="83.0" font-size="9.5" text-anchor="middle" fill="#047857">장치B 준비 완료</text>
+<line x1="214" y1="59.0" x2="674" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<line x1="674" y1="59.0" x2="684" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<line x1="874" y1="59.0" x2="914" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<line x1="684" y1="59.0" x2="765.0" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<line x1="793.0" y1="59.0" x2="874" y2="59.0" stroke="#1f2937" stroke-width="1.5"/>
+<path d="M771.0,47.0 Q763.0,59.0 771.0,71.0" fill="none" stroke="#1f2937" stroke-width="2"/>
+<path d="M787.0,47.0 Q795.0,59.0 787.0,71.0" fill="none" stroke="#1f2937" stroke-width="2"/>
+<text x="779.0" y="43.0" font-size="12" text-anchor="middle" fill="#1d4ed8" font-weight="600">B100</text>
+<text x="779.0" y="83.0" font-size="9.5" text-anchor="middle" fill="#047857">장치B 운전 준비 완료</text>
+</svg>

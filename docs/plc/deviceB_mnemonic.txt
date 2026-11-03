@@ -1,0 +1,82 @@
+; 장치B (국번2) — MELSEC iQ-R / GX Works3 MAIN 프로그램
+
+; (0) 네트워크 상태 인터록 (자국 + 국번1)
+LDI   SB49
+ANI   SW74.0
+OUT   M1
+
+; (1) 장치B 준비 완료
+LD    X1
+ANI   X0
+OUT   M0
+OUT   Y70
+
+; (2) B0 운전 준비 지시 수신 → 래치
+LD    B0
+AND   M1
+SET   M2
+
+; (3) B100 운전 준비 완료 회신
+LD    M2
+AND   M0
+OUT   B100
+
+; (4) 목표 생산수 수신
+LD    M1
+MOV   W0 D20
+
+; (5) 연동 운전 시작 (B1)
+LD    B1
+AND   M1
+AND   M2
+AND   M0
+ANI   M10
+MOV   K0 D0
+SET   M10
+SET   M12
+
+; (6) 단독 운전 시작 (X2)
+LDP   X2
+AND   M0
+ANI   M10
+MOV   K0 D0
+SET   M10
+RST   M12
+
+; (7) 총 생산수 달성 수신 → 준비 래치 해제
+LD    B2
+AND   M1
+RST   M2
+
+; (8) 총 생산수 달성 수신 → 연동 운전 종료
+LD    B2
+AND   M1
+AND   M12
+RST   M10
+
+; (9) 이상 정지
+LD    X0
+RST   M10
+RST   M2
+
+; (10) 연동 운전 중 통신 이상 → 정지
+LDI   M1
+AND   M12
+AND   M10
+RST   M10
+
+; (11) 운전중 출력 / B101 송신
+LD    M10
+OUT   Y71
+OUT   B101
+
+; (12) 생산수 카운트-업
+LDP   X3
+AND   M10
+INC   D0
+
+; (13) 생산수 송신
+LD    SM400
+MOV   D0 W100
+
+END
