@@ -10,6 +10,7 @@
 | [docs/04_주요클래스-함수-발표.pptx](docs/04_주요클래스-함수-발표.pptx) | 발표용 PPT (23장, 도식 + 핵심 요약, 슬라이드 노트 포함) |
 | [docs/05_데이터포맷-프로토콜-명세서.md](docs/05_데이터포맷-프로토콜-명세서.md) | 에뮬레이터 ↔ app-server(TCP), app-server ↔ Viewer(REST·SignalR) 데이터 포맷·프로토콜, 문제점 P1~P12 |
 | [docs/05_데이터포맷-프로토콜-명세서.pdf](docs/05_데이터포맷-프로토콜-명세서.pdf) | 위 문서의 PDF 판 (20쪽, 도식 5종) |
+| [docs/06_PLC-네트워크-래더프로그램.md](docs/06_PLC-네트워크-래더프로그램.md) | 장치A(국번1)·장치B(국번2) iQ-R/GX Works3 래더 프로그램 (CC-Link IE 링크 B/W 송수신, 인터록, 핸드셰이크) |
 | [docs/diagrams/](docs/diagrams/) | 도식 원본 (Mermaid `src/*.mmd`) 과 PNG (`png/`) — d01~d15: 04 설명서, p01~p05: 05 명세서 |
 | [setup/](setup/README.md) | 가이드 단계별 SQL, 설정 파일, nginx 설정 |
 
