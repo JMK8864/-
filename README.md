@@ -12,7 +12,7 @@
 | [docs/05_데이터포맷-프로토콜-명세서.pdf](docs/05_데이터포맷-프로토콜-명세서.pdf) | 위 문서의 PDF 판 (20쪽, 도식 5종) |
 | [docs/06_PLC-네트워크-래더프로그램.md](docs/06_PLC-네트워크-래더프로그램.md) | 장치A(국번1)·장치B(국번2) iQ-R/GX Works3 래더 프로그램 (CC-Link IE 링크 B/W 송수신, 인터록, 핸드셰이크) |
 | [docs/06_PLC-네트워크-래더프로그램.pdf](docs/06_PLC-네트워크-래더프로그램.pdf) | 위 문서의 PDF 판 (11쪽, 렁별 래더 도식 포함) |
-| [docs/plc/](docs/plc/) | GX Works3 입력용 니모닉(txt)·디바이스 코멘트(CSV)·래더 SVG, 생성/PDF 스크립트 |
+| [docs/plc/](docs/plc/) | GX Works3 입력용 니모닉(txt)·디바이스 코멘트(CSV)·래더 SVG, 생성/PDF 스크립트, .gx3 생성기(gx3_build.py, 실험용) |
 | [docs/diagrams/](docs/diagrams/) | 도식 원본 (Mermaid `src/*.mmd`) 과 PNG (`png/`) — d01~d15: 04 설명서, p01~p05: 05 명세서 |
 | [setup/](setup/README.md) | 가이드 단계별 SQL, 설정 파일, nginx 설정 |
 
