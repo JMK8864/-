@@ -32,7 +32,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ladder_gen import PROGRAM_A, PROGRAM_B  # noqa: E402
 
 HEX_TYPES = {"X", "Y", "B", "W", "SB", "SW"}
-NOWIDTH_OUT = {"SET", "RST"}          # 코일처럼 1칸을 차지하는 출력
+BIT_OPERAND_OPS = {"SET", "RST"}      # 비트 피연산자 명령 (as vt=Abl)
+# 칸 폭: 코일(c)만 1칸, 명령 박스는 1+피연산자 수 (SET M10 = 2칸, MOV K0 D0 = 3칸).
+# GX Works3 가 저장한 렁에서 확인: RST M10 이 pos=10 에 놓이고 dim 폭 12.
 
 
 class Rung:
@@ -108,7 +110,7 @@ def output(r, out, x, y):
             args = [operand(r, dev), operand(r, out[2])]
             r.elems.append(f"e{{s=ce{{op=cl{{op=#:ct=a:as=[as{{vt=Abl}}:as{{vt=A16}}]}}"
                            f":args=[{':'.join(args)}]}}:pos={x},{y}}}")
-            return 1
+            return 1 + len(args)
         r.tok("c")
         arg = operand(r, dev)
         r.elems.append(f"e{{s=ce{{op=cl{{op=#:ct=a:as=[as{{vt=Abl}}]}}:args=[{arg}]}}:pos={x},{y}}}")
@@ -116,10 +118,10 @@ def output(r, out, x, y):
     op, *ops = out[1].split()
     r.tok(op)
     args = [operand(r, a) for a in ops]
-    vt = "Abl" if op in NOWIDTH_OUT else "A16"
+    vt = "Abl" if op in BIT_OPERAND_OPS else "A16"
     types = ":".join(f"as{{vt={vt}}}" for _ in ops)
     r.elems.append(f"e{{s=ce{{op=cl{{op=#:ct=a:as=[{types}]}}:args=[{':'.join(args)}]}}:pos={x},{y}}}")
-    return 1 if op in NOWIDTH_OUT else 1 + len(ops)
+    return 1 + len(ops)
 
 
 def build_rung(spec):
