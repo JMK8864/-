@@ -1,0 +1,80 @@
+@page "/motion"
+@inherits LiveComponent
+
+<h2>@L["nav.motion"]</h2>
+<Message Text="@Message" IsError="@MessageIsError" />
+
+<section class="panel">
+    <table>
+        <tr><th></th><th>Axis</th><th>No</th><th>Actual</th><th>Command</th><th>Velocity</th><th>Servo</th><th>Home</th><th>Busy</th><th>InPos</th><th>Alarm</th><th>-Lim</th><th>+Lim</th></tr>
+        @foreach (var a in M.Motion.Axes.Values)
+        {
+            var s = a.Status;
+            <tr class="@(a.Name == _selected ? "sel" : "")" @onclick="() => _selected = a.Name">
+                <td><input type="radio" checked="@(a.Name == _selected)" /></td>
+                <td>@a.Name</td><td>@a.Config.AxisNo</td>
+                <td class="num">@s.ActualPosition.ToString("F3")</td>
+                <td class="num">@s.CommandPosition.ToString("F3")</td>
+                <td class="num">@s.ActualVelocity.ToString("F1")</td>
+                <td><span class="led @(s.ServoOn ? "on" : "")"></span></td>
+                <td><span class="led @(s.HomeDone ? "on" : "")"></span></td>
+                <td><span class="led @(s.Busy ? "on" : "")"></span></td>
+                <td><span class="led @(s.InPosition ? "on" : "")"></span></td>
+                <td><span class="led err @(s.Alarm ? "on" : "")"></span>@(s.Alarm ? s.AlarmCode.ToString() : "")</td>
+                <td><span class="led err @(s.NegativeLimit ? "on" : "")"></span></td>
+                <td><span class="led err @(s.PositiveLimit ? "on" : "")"></span></td>
+            </tr>
+        }
+    </table>
+</section>
+
+@if (Selected is { } ax)
+{
+    <section class="panel">
+        <h3>@ax.Name 수동 조작 (@ax.Config.Unit)</h3>
+        <div class="btns">
+            <button @onclick='() => Manual(() => { ax.ServoOn(true); return OpResult.Success; }, "Servo ON")'>Servo ON</button>
+            <button @onclick='() => Manual(() => { ax.ServoOn(false); return OpResult.Success; }, "Servo OFF")'>Servo OFF</button>
+            <button @onclick='() => Manual(() => { ax.ClearAlarm(); return OpResult.Success; }, "Alarm Clear")'>Alarm Clear</button>
+            <button @onclick='() => Manual(ax.StartHoming, "Home")'>Home</button>
+            <button class="stop" @onclick="() => ax.Stop()">Stop</button>
+        </div>
+        <div class="btns">
+            속도 <input type="number" @bind="_speed" style="width:5em" /> %
+            <button class="jog" @onpointerdown='() => Manual(() => ax.Jog(-1, _speed), "Jog -")' @onpointerup="() => ax.Stop()" @onpointerleave="() => JogRelease(ax)">◀ JOG −</button>
+            <button class="jog" @onpointerdown='() => Manual(() => ax.Jog(+1, _speed), "Jog +")' @onpointerup="() => ax.Stop()" @onpointerleave="() => JogRelease(ax)">JOG + ▶</button>
+        </div>
+        <div class="btns">
+            목표 <input type="number" step="0.001" @bind="_target" style="width:8em" />
+            <button @onclick='() => Manual(() => ax.MoveTo(_target, _speed), $"Move {_target}")'>절대 이동</button>
+            <button @onclick='() => Manual(() => ax.MoveBy(_target, _speed), $"MoveBy {_target}")'>상대 이동</button>
+        </div>
+        <p class="hint">조그는 버튼을 누르고 있는 동안만 움직입니다. 원점 전에는 조그만 가능하고, 이동 명령에도 인터록이 적용됩니다.</p>
+    </section>
+}
+
+@code {
+    protected override int RefreshMs => 100;
+    private string? _selected;
+    private double _speed;
+    private double _target;
+    private Axis? Selected => _selected != null && M.Motion.Axes.TryGetValue(_selected, out var a) ? a : null;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _selected = M.Motion.Axes.Keys.FirstOrDefault();
+        _speed = M.Parameters.GetDouble(PlatformParameters.ManualSpeedPercent);
+    }
+
+    private void Manual(Func<OpResult> action, string name)
+    {
+        if (!RequireManual()) return;
+        Show(action(), $"{_selected} {name}");
+    }
+
+    private void JogRelease(Axis ax)
+    {
+        if (ax.IsMoving && double.IsNaN(ax.LastTarget)) ax.Stop();
+    }
+}

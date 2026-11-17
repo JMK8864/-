@@ -1,0 +1,104 @@
+@page "/io"
+@inherits LiveComponent
+
+<h2>@L["nav.io"]</h2>
+<Message Text="@Message" IsError="@MessageIsError" />
+@if (M.Io.IsSimulation)
+{
+    <p class="hint">시뮬레이션: 입력(DI) 표시등을 누르면 값을 강제로 바꿉니다.</p>
+}
+
+<div class="cols">
+    <section class="panel">
+        <h3>DI</h3>
+        <table>
+            <tr><th></th><th>Name</th><th>Addr</th><th>Description</th></tr>
+            @foreach (var p in M.Io.Inputs.Values)
+            {
+                <tr>
+                    <td><span class="led big @(p.Value ? "on" : "")" @onclick="() => ForceInput(p.Name, !p.Value)"></span></td>
+                    <td>@p.Name</td><td>@Addr(p.Config.Byte, p.Config.Bit)@(p.Config.Inverted ? " (B)" : "")</td><td>@p.Config.Description</td>
+                </tr>
+            }
+        </table>
+    </section>
+    <section class="panel">
+        <h3>DO</h3>
+        <table>
+            <tr><th></th><th>Name</th><th>Addr</th><th>Description</th></tr>
+            @foreach (var p in M.Io.Outputs.Values)
+            {
+                <tr>
+                    <td><span class="led big out @(p.Value ? "on" : "")" @onclick="() => Toggle(p.Name)"></span></td>
+                    <td>@p.Name</td><td>@Addr(p.Config.Byte, p.Config.Bit)</td><td>@p.Config.Description</td>
+                </tr>
+            }
+        </table>
+    </section>
+</div>
+
+<div class="cols">
+    <section class="panel">
+        <h3>AI</h3>
+        <table>
+            <tr><th>Name</th><th>Value</th><th>Raw</th><th>Byte</th><th>Description</th><th></th></tr>
+            @foreach (var p in M.Io.AnalogInputs.Values)
+            {
+                <tr>
+                    <td>@p.Name</td><td class="num">@p.Value.ToString("F2") @p.Config.Unit</td><td class="num">@p.Raw</td>
+                    <td>@p.Config.Byte (@p.Config.DataType)</td><td>@p.Config.Description</td>
+                    <td>
+                        @if (M.Io.IsSimulation)
+                        {
+                            <input type="number" style="width:6em" @onchange="e => SimAnalog(p.Name, e.Value)" />
+                        }
+                    </td>
+                </tr>
+            }
+        </table>
+    </section>
+    <section class="panel">
+        <h3>AO</h3>
+        <table>
+            <tr><th>Name</th><th>Value</th><th>Byte</th><th>Description</th><th>Set</th></tr>
+            @foreach (var p in M.Io.AnalogOutputs.Values)
+            {
+                <tr>
+                    <td>@p.Name</td><td class="num">@p.Value.ToString("F2") @p.Config.Unit</td>
+                    <td>@p.Config.Byte (@p.Config.DataType)</td><td>@p.Config.Description</td>
+                    <td><input type="number" style="width:6em" @onchange="e => SetAnalog(p.Name, e.Value)" /></td>
+                </tr>
+            }
+        </table>
+    </section>
+</div>
+
+@code {
+    protected override int RefreshMs => 200;
+    private static string Addr(int b, int bit) => $"{b}.{bit}";
+
+    private void Toggle(string name)
+    {
+        if (!RequireManual()) return;
+        var o = M.Io.DO(name);
+        Show(o.Set(!o.Value), $"DO {name} → {!o.Value}");
+    }
+
+    private void ForceInput(string name, bool value)
+    {
+        if (!M.Io.IsSimulation) return;
+        M.Io.SimulateInput(name, value);
+    }
+
+    private void SimAnalog(string name, object? v)
+    {
+        if (double.TryParse(v?.ToString(), out var d)) M.Io.SimulateAnalogInput(name, d);
+    }
+
+    private void SetAnalog(string name, object? v)
+    {
+        if (!RequireManual() || !double.TryParse(v?.ToString(), out var d)) return;
+        M.Io.AO(name).Set(d);
+        Show(OpResult.Success, $"AO {name} → {d}");
+    }
+}

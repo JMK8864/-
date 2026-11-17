@@ -1,0 +1,87 @@
+@page "/recipe"
+@inherits LiveComponent
+
+<h2>@L["nav.recipe"]</h2>
+<Message Text="@Message" IsError="@MessageIsError" />
+
+<div class="cols">
+    <section class="panel">
+        <h3>목록</h3>
+        <table>
+            @foreach (var name in M.Recipe.List())
+            {
+                <tr class="@(name == M.Recipe.Current.Name ? "sel" : "")">
+                    <td>@name</td>
+                    <td>
+                        <button class="small" @onclick="() => Select(name)">선택</button>
+                        <button class="small stop" @onclick="() => Delete(name)">삭제</button>
+                    </td>
+                </tr>
+            }
+        </table>
+        <div class="btns">
+            <input placeholder="새 이름" @bind="_newName" />
+            <button @onclick="CopyCurrent">현재 레시피 복사</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h3>@M.Recipe.Current.Name <small>수정 @M.Recipe.Current.Modified.ToString("yyyy-MM-dd HH:mm") @M.Recipe.Current.ModifiedBy</small></h3>
+        <table>
+            <tr><th>Key</th><th>설명</th><th>값</th><th>단위</th><th>범위</th></tr>
+            @foreach (var d in M.Recipe.ValueDefs)
+            {
+                <tr>
+                    <td>@d.Key</td><td>@d.Description</td>
+                    <td><input type="number" style="width:7em" value="@M.Recipe.Value(d.Key)" @onchange="e => SetValue(d, e.Value)" /></td>
+                    <td>@d.Unit</td><td>@d.Min ~ @d.Max</td>
+                </tr>
+            }
+        </table>
+        <button class="go" @onclick="Save">@L["cmd.save"]</button>
+    </section>
+</div>
+
+@code {
+    protected override int RefreshMs => 1000;
+    private string _newName = "";
+
+    private void Select(string name)
+    {
+        if (!Require(UserLevel.Engineer)) return;
+        if (M.State == MachineState.Run) { Show(OpResult.Fail("운전 중에는 레시피를 바꿀 수 없습니다."), "레시피 선택"); return; }
+        M.Recipe.Select(name);
+        Show(OpResult.Success, $"레시피 선택 {name}");
+    }
+
+    private void Delete(string name)
+    {
+        if (!Require(UserLevel.Engineer)) return;
+        Show(M.Recipe.Delete(name) ? OpResult.Success : OpResult.Fail("사용 중인 레시피는 삭제할 수 없습니다."), $"레시피 삭제 {name}");
+    }
+
+    private void CopyCurrent()
+    {
+        if (!Require(UserLevel.Engineer) || string.IsNullOrWhiteSpace(_newName)) return;
+        if (_newName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) { Show(OpResult.Fail("이름에 쓸 수 없는 문자가 있습니다."), "복사"); return; }
+        M.Recipe.SaveCurrent(Session.Name);
+        M.Recipe.Copy(M.Recipe.Current.Name, _newName.Trim(), Session.Name);
+        Show(OpResult.Success, $"레시피 복사 → {_newName}");
+        _newName = "";
+    }
+
+    private void SetValue(RecipeValueDef d, object? v)
+    {
+        if (!Require(UserLevel.Engineer) || !double.TryParse(v?.ToString(), out var x)) return;
+        if (x < d.Min || x > d.Max) { Show(OpResult.Fail($"범위 초과 ({d.Min} ~ {d.Max})"), d.Key); return; }
+        M.Recipe.SetValue(d.Key, x);
+        Show(OpResult.Success, $"{d.Key} = {x} (미저장)");
+    }
+
+    private void Save()
+    {
+        if (!Require(UserLevel.Engineer)) return;
+        M.Recipe.SaveCurrent(Session.Name);
+        Show(OpResult.Success, "레시피 저장");
+    }
+}

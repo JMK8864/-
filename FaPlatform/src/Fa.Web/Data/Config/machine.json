@@ -1,0 +1,70 @@
+{
+  // 설비 하드웨어 구성. 축/IO 를 추가·삭제할 때 이 파일만 수정한다 (코드는 Name 으로만 참조).
+  "MachineName": "Sample Loader/Unloader",
+  "Controller": {
+    "Kind": "Simulation",            // Simulation | Wmx3 | Mmce
+    "Options": {
+      "InstallPath": "C:\\Program Files\\SoftServo\\WMX3\\",
+      "TimeoutMs": "10000"
+    }
+  },
+  "Threads": { "IoScanMs": 2, "MotionScanMs": 2, "SequenceScanMs": 5, "SupervisorScanMs": 10 },
+  "Safety": {
+    "EStopInput": "EMO",
+    "DoorInputs": [ "DOOR_FRONT", "DOOR_REAR" ],
+    "TowerLampRed": "LAMP_RED",
+    "TowerLampYellow": "LAMP_YELLOW",
+    "TowerLampGreen": "LAMP_GREEN",
+    "Buzzer": "BUZZER"
+  },
+  "Axes": [
+    { "Name": "LD_Y", "AxisNo": 0, "Unit": "mm", "PulsePerUnit": 1000, "MaxVelocity": 1500, "DefaultVelocity": 1000, "DefaultAcc": 8000, "DefaultDec": 8000, "JogVelocity": 50, "SoftLimitMin": -5, "SoftLimitMax": 400, "InPositionTolerance": 0.01, "MoveTimeoutMs": 10000,
+      "Home": { "Method": "HomeSensor", "Velocity": 20, "Acc": 200, "NegativeDirection": true, "Offset": 0, "TimeoutMs": 30000, "Order": 1 } },
+    { "Name": "LD_Z", "AxisNo": 1, "Unit": "mm", "PulsePerUnit": 1000, "MaxVelocity": 800, "DefaultVelocity": 500, "DefaultAcc": 8000, "DefaultDec": 8000, "JogVelocity": 20, "SoftLimitMin": -5, "SoftLimitMax": 80, "InPositionTolerance": 0.01, "MoveTimeoutMs": 10000,
+      "Home": { "Method": "HomeSensor", "Velocity": 10, "Acc": 100, "NegativeDirection": true, "Offset": 0, "TimeoutMs": 30000, "Order": 0 } },
+    { "Name": "TR_X", "AxisNo": 2, "Unit": "mm", "PulsePerUnit": 1000, "MaxVelocity": 2000, "DefaultVelocity": 1500, "DefaultAcc": 8000, "DefaultDec": 8000, "JogVelocity": 50, "SoftLimitMin": -5, "SoftLimitMax": 700, "InPositionTolerance": 0.01, "MoveTimeoutMs": 10000,
+      "Home": { "Method": "HomeSensor", "Velocity": 30, "Acc": 300, "NegativeDirection": true, "Offset": 0, "TimeoutMs": 30000, "Order": 0 } },
+    { "Name": "UL_Y", "AxisNo": 3, "Unit": "mm", "PulsePerUnit": 1000, "MaxVelocity": 1500, "DefaultVelocity": 1000, "DefaultAcc": 8000, "DefaultDec": 8000, "JogVelocity": 50, "SoftLimitMin": -5, "SoftLimitMax": 400, "InPositionTolerance": 0.01, "MoveTimeoutMs": 10000,
+      "Home": { "Method": "HomeSensor", "Velocity": 20, "Acc": 200, "NegativeDirection": true, "Offset": 0, "TimeoutMs": 30000, "Order": 1 } },
+    { "Name": "UL_Z", "AxisNo": 4, "Unit": "mm", "PulsePerUnit": 1000, "MaxVelocity": 800, "DefaultVelocity": 500, "DefaultAcc": 8000, "DefaultDec": 8000, "JogVelocity": 20, "SoftLimitMin": -5, "SoftLimitMax": 80, "InPositionTolerance": 0.01, "MoveTimeoutMs": 10000,
+      "Home": { "Method": "HomeSensor", "Velocity": 10, "Acc": 100, "NegativeDirection": true, "Offset": 0, "TimeoutMs": 30000, "Order": 0 } }
+  ],
+  // EtherCAT 프로세스 이미지 크기 (byte). 접점 위치 = Byte.Bit
+  "IoImage": { "InputSize": 64, "OutputSize": 64 },
+  "DigitalInputs": [
+    { "Name": "EMO",          "Byte": 0, "Bit": 0, "Inverted": true, "Description": "비상정지 (B접점)" },
+    { "Name": "DOOR_FRONT",   "Byte": 0, "Bit": 1, "Inverted": true, "Description": "전면 도어 열림 (센서는 닫힘=ON 이므로 Inverted)" },
+    { "Name": "DOOR_REAR",    "Byte": 0, "Bit": 2, "Inverted": true, "Description": "후면 도어 열림 (센서는 닫힘=ON 이므로 Inverted)" },
+    { "Name": "LD_MATERIAL",  "Byte": 1, "Bit": 0, "Description": "로더 카세트 자재 감지" },
+    { "Name": "LD_VAC_OK",    "Byte": 1, "Bit": 1, "Description": "로더 진공 확인" },
+    { "Name": "TR_CLAMP_ON",  "Byte": 2, "Bit": 0, "Description": "반송 클램프 전진" },
+    { "Name": "TR_CLAMP_OFF", "Byte": 2, "Bit": 1, "Description": "반송 클램프 후진" },
+    { "Name": "UL_VAC_OK",    "Byte": 3, "Bit": 0, "Description": "언로더 진공 확인" }
+  ],
+  "DigitalOutputs": [
+    { "Name": "LAMP_RED",    "Byte": 0, "Bit": 0, "Description": "타워램프 적색" },
+    { "Name": "LAMP_YELLOW", "Byte": 0, "Bit": 1, "Description": "타워램프 황색" },
+    { "Name": "LAMP_GREEN",  "Byte": 0, "Bit": 2, "Description": "타워램프 녹색" },
+    { "Name": "BUZZER",      "Byte": 0, "Bit": 3, "Description": "부저" },
+    { "Name": "LD_VAC_ON",   "Byte": 1, "Bit": 0, "Description": "로더 진공 ON" },
+    { "Name": "TR_CLAMP",    "Byte": 2, "Bit": 0, "Description": "반송 클램프" },
+    { "Name": "UL_VAC_ON",   "Byte": 3, "Bit": 0, "Description": "언로더 진공 ON" }
+  ],
+  "AnalogInputs": [
+    { "Name": "LD_VAC_PRESSURE", "Byte": 16, "DataType": "Int16", "RawMin": 0, "RawMax": 32767, "EngMin": 0, "EngMax": -101.3, "Unit": "kPa", "Description": "로더 진공 압력" }
+  ],
+  "AnalogOutputs": [
+    { "Name": "TR_CONVEYOR_SPEED", "Byte": 16, "DataType": "Int16", "RawMin": 0, "RawMax": 32767, "EngMin": 0, "EngMax": 10, "Unit": "V", "Description": "컨베이어 속도 지령" }
+  ],
+  // 시뮬레이션 전용: 출력 → 입력 자동 연결, 입력 초기값
+  "Simulation": {
+    "Links": [
+      { "Output": "LD_VAC_ON", "Input": "LD_VAC_OK",    "DelayMs": 100 },
+      { "Output": "TR_CLAMP",  "Input": "TR_CLAMP_ON",  "DelayMs": 150 },
+      { "Output": "TR_CLAMP",  "Input": "TR_CLAMP_OFF", "Invert": true, "DelayMs": 150 },
+      { "Output": "UL_VAC_ON", "Input": "UL_VAC_OK",    "DelayMs": 100 }
+    ],
+    "InitialInputs": { "EMO": false, "DOOR_FRONT": false, "DOOR_REAR": false, "LD_MATERIAL": true },
+    "InitialAnalogInputs": { "LD_VAC_PRESSURE": -2.0 }
+  }
+}

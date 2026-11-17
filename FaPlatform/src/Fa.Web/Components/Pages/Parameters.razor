@@ -1,0 +1,48 @@
+@page "/parameters"
+@inherits LiveComponent
+@inject ParameterManager P
+
+<h2>@L["nav.parameter"]</h2>
+<Message Text="@Message" IsError="@MessageIsError" />
+
+@foreach (var group in P.Definitions.GroupBy(d => d.Group).OrderBy(g => g.Key))
+{
+    <section class="panel">
+        <h3>@group.Key</h3>
+        <table>
+            <tr><th>Key</th><th>설명</th><th>값</th><th>단위</th><th>권한</th></tr>
+            @foreach (var d in group)
+            {
+                <tr>
+                    <td>@d.Key</td><td>@d.Description</td>
+                    <td>
+                        @if (d.Options != null)
+                        {
+                            <select value="@P.Get(d.Key)" @onchange="e => Set(d, e.Value)">
+                                @foreach (var o in d.Options) { <option value="@o">@o</option> }
+                            </select>
+                        }
+                        else
+                        {
+                            <input value="@P.Get(d.Key)" @onchange="e => Set(d, e.Value)" />
+                        }
+                    </td>
+                    <td>@d.Unit</td><td>@d.EditLevel</td>
+                </tr>
+            }
+        </table>
+    </section>
+}
+
+@code {
+    protected override int RefreshMs => 1000;
+
+    private void Set(ParameterDef d, object? v)
+    {
+        if (!Require(d.EditLevel)) return;
+        var value = v?.ToString() ?? "";
+        var old = P.Get(d.Key);
+        P.Set(d.Key, value);
+        Show(OpResult.Success, $"파라미터 {d.Key}: {old} → {value}");
+    }
+}

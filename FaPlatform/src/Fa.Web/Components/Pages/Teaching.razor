@@ -1,0 +1,64 @@
+@page "/teaching"
+@inherits LiveComponent
+
+<h2>@L["nav.teaching"] — @M.Recipe.Current.Name</h2>
+<Message Text="@Message" IsError="@MessageIsError" />
+<p class="hint">티칭 위치는 현재 레시피에 저장됩니다. '현재위치' 로 값을 바꾼 뒤 반드시 저장하세요. (Engineer 이상)</p>
+
+@foreach (var group in M.Recipe.TeachingDefs.GroupBy(d => d.Axis))
+{
+    var axis = M.Motion.Axes.GetValueOrDefault(group.Key);
+    <section class="panel">
+        <h3>@group.Key <small>현재 @(axis?.Position.ToString("F3") ?? "-") @axis?.Config.Unit</small></h3>
+        <table>
+            <tr><th>Point</th><th>설명</th><th>저장 값</th><th>편집</th><th></th></tr>
+            @foreach (var d in group)
+            {
+                <tr>
+                    <td>@d.Point</td><td>@d.Description</td>
+                    <td class="num">@M.Recipe.Teach(d.Axis, d.Point).ToString("F3")</td>
+                    <td><input type="number" step="0.001" style="width:8em" value="@M.Recipe.Teach(d.Axis, d.Point)" @onchange="e => SetValue(d, e.Value)" /></td>
+                    <td>
+                        <button class="small" @onclick="() => TeachCurrent(d)">현재위치</button>
+                        <button class="small" @onclick="() => MoveTo(d)">이동</button>
+                    </td>
+                </tr>
+            }
+        </table>
+    </section>
+}
+
+<button class="go" @onclick="Save">@L["cmd.save"]</button>
+
+@code {
+    protected override int RefreshMs => 200;
+
+    private void SetValue(TeachingPointDef d, object? v)
+    {
+        if (!Require(UserLevel.Engineer) || !double.TryParse(v?.ToString(), out var pos)) return;
+        M.Recipe.SetTeach(d.Axis, d.Point, pos);
+        Show(OpResult.Success, $"Teach {d.Key} = {pos:F3} (미저장)");
+    }
+
+    private void TeachCurrent(TeachingPointDef d)
+    {
+        if (!Require(UserLevel.Engineer)) return;
+        var pos = M.Motion[d.Axis].Position;
+        M.Recipe.SetTeach(d.Axis, d.Point, pos);
+        Show(OpResult.Success, $"Teach {d.Key} = {pos:F3} (미저장)");
+    }
+
+    private void MoveTo(TeachingPointDef d)
+    {
+        if (!RequireManual()) return;
+        var speed = M.Parameters.GetDouble(PlatformParameters.ManualSpeedPercent);
+        Show(M.Motion[d.Axis].MoveTo(M.Recipe.Teach(d.Axis, d.Point), speed), $"Move {d.Key}");
+    }
+
+    private void Save()
+    {
+        if (!Require(UserLevel.Engineer)) return;
+        M.Recipe.SaveCurrent(Session.Name);
+        Show(OpResult.Success, $"레시피 {M.Recipe.Current.Name} 저장");
+    }
+}

@@ -1,0 +1,85 @@
+@page "/alarms"
+@inherits LiveComponent
+@inject IAlarmHistoryRepository History
+
+<h2>@L["nav.alarm"]</h2>
+<Message Text="@Message" IsError="@MessageIsError" />
+
+<section class="panel">
+    <h3>@L["alarm.active"] <button @onclick="ResetClick">@L["cmd.reset"]</button></h3>
+    @if (!M.Alarms.HasAny)
+    {
+        <p>@L["alarm.none"]</p>
+    }
+    else
+    {
+        <table>
+            <tr><th>Code</th><th>Level</th><th>Source</th><th>Message</th><th>Detail</th><th>@L["alarm.occurred"]</th><th>@L["alarm.action"]</th></tr>
+            @foreach (var a in M.Alarms.Active)
+            {
+                <tr class="lv-@a.Level">
+                    <td>@a.Code</td><td>@a.Level</td><td>@a.Source</td><td>@a.Message</td><td>@a.Detail</td>
+                    <td>@a.OccurredAt.ToString("MM-dd HH:mm:ss")</td>
+                    <td class="action">@M.Alarms.GetDefinition(a.Code).GetAction(L.Language)</td>
+                </tr>
+            }
+        </table>
+    }
+</section>
+
+<section class="panel">
+    <h3>@L["alarm.history"]</h3>
+    <div class="btns">
+        <input type="date" @bind="_from" /> ~ <input type="date" @bind="_to" />
+        <input type="number" placeholder="Code" @bind="_code" style="width:6em" />
+        <button @onclick="Query">@L["cmd.query"]</button>
+    </div>
+    @if (_history != null)
+    {
+        <h4>@L["alarm.stats"]</h4>
+        <table>
+            <tr><th>Code</th><th>Message</th><th>횟수</th><th>총 정지시간</th><th>평균 복구시간</th></tr>
+            @foreach (var g in _history.GroupBy(h => h.Code).OrderByDescending(g => g.Count()))
+            {
+                var done = g.Where(x => x.Duration != null).ToList();
+                var total = TimeSpan.FromSeconds(done.Sum(x => x.Duration!.Value.TotalSeconds));
+                <tr>
+                    <td>@g.Key</td><td>@g.First().Message</td><td>@g.Count()</td>
+                    <td>@total.ToString(@"hh\:mm\:ss")</td>
+                    <td>@(done.Count > 0 ? (total / done.Count).ToString(@"mm\:ss") : "-")</td>
+                </tr>
+            }
+        </table>
+
+        <h4>상세 (@_history.Count 건)</h4>
+        <table>
+            <tr><th>@L["alarm.occurred"]</th><th>@L["alarm.cleared"]</th><th>@L["alarm.duration"]</th><th>Code</th><th>Source</th><th>Message</th><th>Detail</th><th>By</th><th>Recipe</th></tr>
+            @foreach (var h in _history)
+            {
+                <tr class="lv-@h.Level">
+                    <td>@h.OccurredAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@(h.ClearedAt?.ToString("HH:mm:ss") ?? "발생 중")</td>
+                    <td>@(h.Duration?.ToString(@"hh\:mm\:ss") ?? "-")</td>
+                    <td>@h.Code</td><td>@h.Source</td><td>@h.Message</td><td>@h.Detail</td><td>@h.ClearedBy</td><td>@h.Recipe</td>
+                </tr>
+            }
+        </table>
+    }
+</section>
+
+@code {
+    protected override int RefreshMs => 500;
+    private DateTime _from = DateTime.Today;
+    private DateTime _to = DateTime.Today;
+    private int? _code;
+    private IReadOnlyList<AlarmRecord>? _history;
+
+    protected override async Task OnInitializedAsync() => await Query();
+    private void ResetClick() => Show(M.Reset(Session.Name), L["cmd.reset"]);
+
+    private async Task Query()
+    {
+        try { _history = await History.QueryAsync(_from.Date, _to.Date.AddDays(1).AddTicks(-1), _code); }
+        catch (Exception ex) { Show(OpResult.Fail(ex.Message), "이력 조회"); }
+    }
+}

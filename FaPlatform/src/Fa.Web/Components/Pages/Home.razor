@@ -1,0 +1,84 @@
+@page "/"
+@inherits LiveComponent
+
+<h2>@L["nav.main"]</h2>
+<Message Text="@Message" IsError="@MessageIsError" />
+
+<section class="panel">
+    <h3>@L["mode"]</h3>
+    <div class="btns">
+        @foreach (var mode in Enum.GetValues<OperationMode>())
+        {
+            <button class="@(M.Mode == mode ? "on" : "")" @onclick="() => Show(M.SetMode(mode), Mode(mode))">@mode</button>
+        }
+    </div>
+
+    <h3>운전</h3>
+    <div class="btns">
+        <select @bind="_policy">
+            @foreach (var p in Enum.GetValues<ResumePolicy>()) { <option value="@p">@L[$"resume.{p}"]</option> }
+        </select>
+        <button class="go" @onclick="StartClick">@L["cmd.start"]</button>
+        <button class="stop" @onclick="StopClick">@L["cmd.stop"]</button>
+        <button @onclick="ResetClick">@L["cmd.reset"]</button>
+        <button @onclick="HomeClick">@L["cmd.home"]</button>
+        @if (M.Mode == OperationMode.Step)
+        {
+            <button class="go" @onclick="() => M.StepNext()">@L["cmd.stepNext"] (ALL)</button>
+        }
+    </div>
+    <p class="hint">알람/정지 후 Start: <b>이어서</b> = 멈춘 스텝(마지막 명령 스텝)부터, <b>처음부터</b> = 모든 유닛 Step 0. 원점복귀 직후 첫 Start 는 항상 처음부터.</p>
+</section>
+
+<section class="panel">
+    <h3>@L["unit"]</h3>
+    <table>
+        <tr><th>@L["unit"]</th><th>Home</th><th>@L["step"]</th><th>내용</th><th>경과(ms)</th><th>@L["cycle"]</th><th>@(L["tact"]) (s)</th><th></th></tr>
+        @foreach (var u in M.Units)
+        {
+            <tr>
+                <td>@u.Name</td>
+                <td class="h-@u.HomeState">@u.HomeState</td>
+                <td>@u.Step</td>
+                <td>@u.StepName</td>
+                <td>@u.StepElapsedMs</td>
+                <td>@u.CycleCount</td>
+                <td>@u.LastTactSec.ToString("F2")</td>
+                <td>
+                    @if (M.Mode == OperationMode.Step && u.WaitingStepTrigger)
+                    {
+                        <button class="go small" @onclick="() => M.StepNext(u.Name)">@L["cmd.stepNext"]</button>
+                    }
+                </td>
+            </tr>
+        }
+    </table>
+</section>
+
+<section class="panel">
+    <h3>스레드 스캔 (ms)</h3>
+    <table>
+        <tr><th>Thread</th><th>Last</th><th>Max</th></tr>
+        @foreach (var w in M.Workers)
+        {
+            <tr><td>@w.Name</td><td>@w.LastScanMs.ToString("F3")</td><td>@w.MaxScanMs.ToString("F3")</td></tr>
+        }
+    </table>
+    <button class="small" @onclick="() => { foreach (var w in M.Workers) w.ResetMax(); }">Max 초기화</button>
+</section>
+
+@code {
+    private ResumePolicy _policy;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _policy = M.Parameters.GetEnum<ResumePolicy>(PlatformParameters.ResumePolicy);
+    }
+
+    private static string Mode(OperationMode m) => $"Mode {m}";
+    private void StartClick() => Show(M.Start(_policy), $"{L["cmd.start"]} ({_policy})");
+    private void StopClick() => Show(M.Stop(), L["cmd.stop"]);
+    private void ResetClick() => Show(M.Reset(Session.Name), L["cmd.reset"]);
+    private void HomeClick() => Show(M.Home(), L["cmd.home"]);
+}

@@ -1,0 +1,66 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject MachineController M
+@inject Localizer L
+@inject UserSession Session
+@inject ParameterManager P
+
+<div class="topbar">
+    <div class="brand">@M.Config.MachineName</div>
+    <div class="state state-@M.State">@M.State@(M.IsHoming ? " (Homing)" : "")</div>
+    <div class="mode">@M.Mode</div>
+    @if (M.IsSimulation) { <div class="sim">@L["sim"]</div> }
+    <div class="spacer"></div>
+    <div>@L["recipe"]: <b>@M.Recipe.Current.Name</b></div>
+    <select value="@L.Language" @onchange="ChangeLanguage">
+        @foreach (var lang in L.Available) { <option value="@lang">@lang</option> }
+    </select>
+    <a href="login" class="user">@Session.Name (@Session.Level)</a>
+    <div class="clock">@DateTime.Now.ToString("HH:mm:ss")</div>
+</div>
+
+@if (M.Alarms.HasAny)
+{
+    <a href="alarms" class="alarm-banner">⚠ @string.Join(" / ", M.Alarms.Active.Select(a => $"[{a.Code}] {a.Message} ({a.Source})"))</a>
+}
+
+<div class="body">
+    <nav class="side">
+        <NavLink href="" Match="NavLinkMatch.All">@L["nav.main"]</NavLink>
+        <NavLink href="alarms">@L["nav.alarm"]</NavLink>
+        <NavLink href="motion">@L["nav.motion"]</NavLink>
+        <NavLink href="io">@L["nav.io"]</NavLink>
+        <NavLink href="teaching">@L["nav.teaching"]</NavLink>
+        <NavLink href="recipe">@L["nav.recipe"]</NavLink>
+        <NavLink href="parameters">@L["nav.parameter"]</NavLink>
+        <NavLink href="log">@L["nav.log"]</NavLink>
+        <NavLink href="login">@L["nav.user"]</NavLink>
+    </nav>
+    <main>@Body</main>
+</div>
+
+@code {
+    private Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        _timer = new Timer(_ => InvokeAsync(StateHasChanged), null, 500, 500);
+        L.Changed += Redraw;
+        Session.Changed += Redraw;
+    }
+
+    private void Redraw() => InvokeAsync(StateHasChanged);
+
+    private void ChangeLanguage(ChangeEventArgs e)
+    {
+        // 언어는 설비 전체 설정 (파라미터에 저장 → Localizer/알람 문구 갱신)
+        P.Set(PlatformParameters.Language, e.Value?.ToString() ?? "ko");
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        L.Changed -= Redraw;
+        Session.Changed -= Redraw;
+    }
+}

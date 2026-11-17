@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="app.css" />
+    <title>FA Platform</title>
+    <HeadOutlet @rendermode="RenderModeServer" />
+</head>
+<body>
+    <Routes @rendermode="RenderModeServer" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>
+
+@code {
+    // 프리렌더 끔: 화면 타이머/세션이 한 번만 만들어지도록
+    private static readonly IComponentRenderMode RenderModeServer = new InteractiveServerRenderMode(prerender: false);
+}

@@ -12,6 +12,7 @@
 | [docs/05_데이터포맷-프로토콜-명세서.pdf](docs/05_데이터포맷-프로토콜-명세서.pdf) | 위 문서의 PDF 판 (20쪽, 도식 5종) |
 | [docs/diagrams/](docs/diagrams/) | 도식 원본 (Mermaid `src/*.mmd`) 과 PNG (`png/`) — d01~d15: 04 설명서, p01~p05: 05 명세서 |
 | [setup/](setup/README.md) | 가이드 단계별 SQL, 설정 파일, nginx 설정 |
+| [FaPlatform/](FaPlatform/README.md) | FA 설비 제어 C# 플랫폼 뼈대 (.NET 8, 모션/IO/시퀀스/알람/웹 HMI, 시뮬레이션 모드) |
 
 구성 요약
 ```

@@ -1,0 +1,75 @@
+@page "/login"
+@inherits LiveComponent
+@inject UserManager Users
+
+<h2>@L["nav.user"]</h2>
+<Message Text="@Message" IsError="@MessageIsError" />
+
+<section class="panel">
+    @if (Session.User == null)
+    {
+        <h3>@L["login"]</h3>
+        <div class="btns">
+            <input placeholder="ID" @bind="_name" />
+            <input type="password" placeholder="Password" @bind="_password" />
+            <button class="go" @onclick="DoLogin">@L["login"]</button>
+        </div>
+        <p class="hint">로그인하지 않으면 Operator 권한입니다. 최초 계정 admin/admin, engineer/engineer — 설치 후 반드시 변경하세요.</p>
+    }
+    else
+    {
+        <h3>@Session.Name (@Session.Level)</h3>
+        <button @onclick="() => Session.Logout()">@L["logout"]</button>
+    }
+</section>
+
+@if (Session.Can(UserLevel.Admin))
+{
+    <section class="panel">
+        <h3>계정 관리</h3>
+        <table>
+            <tr><th>ID</th><th>Level</th><th></th></tr>
+            @foreach (var u in Users.Users)
+            {
+                <tr><td>@u.Name</td><td>@u.Level</td><td><button class="small stop" @onclick="() => Remove(u.Name)">삭제</button></td></tr>
+            }
+        </table>
+        <div class="btns">
+            <input placeholder="ID" @bind="_newName" />
+            <input type="password" placeholder="Password" @bind="_newPassword" />
+            <select @bind="_newLevel">
+                @foreach (var l in Enum.GetValues<UserLevel>()) { <option value="@l">@l</option> }
+            </select>
+            <button @onclick="AddUser">추가 / 비밀번호 변경</button>
+        </div>
+    </section>
+}
+
+@code {
+    protected override int RefreshMs => 2000;
+    private string _name = "", _password = "";
+    private string _newName = "", _newPassword = "";
+    private UserLevel _newLevel = UserLevel.Operator;
+
+    private void DoLogin()
+    {
+        var ok = Session.Login(_name, _password);
+        _password = "";
+        Show(ok ? OpResult.Success : OpResult.Fail("ID 또는 비밀번호가 틀립니다."), $"로그인 {_name}");
+    }
+
+    private void AddUser()
+    {
+        if (!Require(UserLevel.Admin) || string.IsNullOrWhiteSpace(_newName) || string.IsNullOrEmpty(_newPassword)) return;
+        Users.AddOrUpdate(_newName.Trim(), _newPassword, _newLevel);
+        Show(OpResult.Success, $"계정 저장 {_newName} ({_newLevel})");
+        _newName = _newPassword = "";
+    }
+
+    private void Remove(string name)
+    {
+        if (!Require(UserLevel.Admin)) return;
+        if (name.Equals(Session.Name, StringComparison.OrdinalIgnoreCase)) { Show(OpResult.Fail("현재 로그인한 계정은 삭제할 수 없습니다."), "계정 삭제"); return; }
+        Show(Users.Remove(name) ? OpResult.Success : OpResult.Fail("없음"), $"계정 삭제 {name}");
+    }
+}

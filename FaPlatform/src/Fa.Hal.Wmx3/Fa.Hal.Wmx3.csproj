@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- 벤더 SDK DLL 은 x64 전용 -->
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fa.Core\Fa.Core.csproj" />
+  </ItemGroup>
+  <!--
+    실제 드라이버를 붙일 때:
+    1) 벤더 SDK 의 .NET DLL 을 참조에 추가
+    2) 아래 DefineConstants 주석을 풀어 SDK 코드 블록을 활성화
+  -->
+  <!-- <PropertyGroup><DefineConstants>$(DefineConstants);WMX3_SDK</DefineConstants></PropertyGroup> -->
+</Project>

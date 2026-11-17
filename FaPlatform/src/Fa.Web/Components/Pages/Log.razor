@@ -1,0 +1,45 @@
+@page "/log"
+@inherits LiveComponent
+@inject Fa.Infrastructure.Logging.FileLoggerProvider FileLog
+
+<h2>@L["nav.log"]</h2>
+<div class="btns">
+    <input type="date" @bind="_date" />
+    <select @bind="_file">
+        @foreach (var f in Files) { <option value="@f">@f</option> }
+    </select>
+    <label><input type="checkbox" @bind="_follow" /> 자동 갱신</label>
+    <input placeholder="필터" @bind="_filter" @bind:event="oninput" />
+</div>
+<pre class="log">@string.Join('\n', ReadTail())</pre>
+
+@code {
+    protected override int RefreshMs => 1000;
+    private DateTime _date = DateTime.Today;
+    private string _file = "System";
+    private bool _follow = true;
+    private string _filter = "";
+    private string[] _cache = Array.Empty<string>();
+
+    private string Dir => Path.Combine(FileLog.LogRoot, _date.ToString("yyyy-MM-dd"));
+
+    private IEnumerable<string> Files => Directory.Exists(Dir)
+        ? Directory.GetFiles(Dir, "*.txt").Select(Path.GetFileNameWithoutExtension).Order()!
+        : new[] { "System" };
+
+    private IEnumerable<string> ReadTail()
+    {
+        if (_follow || _cache.Length == 0)
+        {
+            var path = Path.Combine(Dir, _file + ".txt");
+            if (File.Exists(path))
+            {
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var rd = new StreamReader(fs);
+                _cache = rd.ReadToEnd().Split('\n').TakeLast(500).Reverse().ToArray();
+            }
+            else _cache = new[] { "(파일 없음)" };
+        }
+        return string.IsNullOrEmpty(_filter) ? _cache : _cache.Where(l => l.Contains(_filter, StringComparison.OrdinalIgnoreCase));
+    }
+}
